@@ -47,13 +47,10 @@ const browserAgent = async (url) => {
     console.log("OUTPUT IS: ", output);
     console.log("OUTPUT TEXT IS: ", output_text);
 
-    const finalResponse = await computerUseLoop(page, response);
-    console.log("FINAL RESPONSE IS: ", finalResponse);
+    const curlDocs = await computerUseLoop(page, response);
+    console.log("FINAL RESPONSE IS: ", curlDocs);
 
-    return {
-        page,
-        browser,
-    }
+    return {browser, page, curlDocs};
 }
 
 async function computerUseLoop(pageInstance, response) {
