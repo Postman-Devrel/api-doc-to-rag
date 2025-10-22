@@ -1,0 +1,26 @@
+# Dependencies
+node_modules
+.yarn
+
+# Build outputs
+dist
+build
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Generated files
+yarn.lock
+package-lock.json
+
+# Migrations
+db/migrations/**/*.sql
+

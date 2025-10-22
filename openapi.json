@@ -1,2729 +1,2586 @@
 {
-  "openapi": "3.0.3",
-  "info": {
-    "title": "Luma Public API",
-    "version": "1.0.0",
-    "description": "Luma API allows you to programmatically manage events, guests, calendars, people, ticket types, coupons, images, and more.\n\nGetting Started\n\n- Base URL: https://public-api.luma.com\n- Requirements: Luma Plus subscription\n- Authentication: Include your API key in the x-luma-api-key header\n\nRate Limits\n\n- GET endpoints: 500 requests per 5 minutes per calendar\n- POST endpoints: 100 requests per 5 minutes per calendar (separate from GET limit)\n- Block duration: 1 minute when limit is exceeded\n- On limit exceed: 429 Too Many Requests\n\nAPI Formats\n\n- Dates: ISO 8601 (e.g., 2022-10-04T05:20:00.000Z), returned in UTC\n- Durations: ISO 8601 duration (e.g., P1DT12H30M)\n- Locations: Google Maps Place IDs\n\nRoute Versioning\n\n- Per-route versioning (e.g., /v1/... and /v2/... can coexist)\n- Enables gradual migration and isolated changes per endpoint\n\nCode Examples\n\n- Demo Basketball Club example: https://github.com/luma-team/basketball-club-example\n\nSupport\n\n- For higher limits or questions: support@luma.com"
-  },
-  "servers": [
-    {
-      "url": "https://public-api.luma.com"
-    }
-  ],
-  "tags": [
-    {
-      "name": "Getting Started",
-      "description": "Make your first request in minutes. Authenticate using x-luma-api-key."
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Luma Public API",
+        "version": "1.0.0",
+        "description": "Luma API allows you to programmatically manage events, guests, calendars, people, ticket types, coupons, images, and more.\n\nGetting Started\n\n- Base URL: https://public-api.luma.com\n- Requirements: Luma Plus subscription\n- Authentication: Include your API key in the x-luma-api-key header\n\nRate Limits\n\n- GET endpoints: 500 requests per 5 minutes per calendar\n- POST endpoints: 100 requests per 5 minutes per calendar (separate from GET limit)\n- Block duration: 1 minute when limit is exceeded\n- On limit exceed: 429 Too Many Requests\n\nAPI Formats\n\n- Dates: ISO 8601 (e.g., 2022-10-04T05:20:00.000Z), returned in UTC\n- Durations: ISO 8601 duration (e.g., P1DT12H30M)\n- Locations: Google Maps Place IDs\n\nRoute Versioning\n\n- Per-route versioning (e.g., /v1/... and /v2/... can coexist)\n- Enables gradual migration and isolated changes per endpoint\n\nCode Examples\n\n- Demo Basketball Club example: https://github.com/luma-team/basketball-club-example\n\nSupport\n\n- For higher limits or questions: support@luma.com"
     },
-    {
-      "name": "API Formats",
-      "description": "Dates and durations use ISO 8601. All times are UTC. Locations use Google Maps Place IDs."
-    },
-    {
-      "name": "Rate Limits",
-      "description": "GET: 500/5min/calendar, POST: 100/5min/calendar. 429 when exceeded; 1 minute block."
-    },
-    {
-      "name": "API Conventions",
-      "description": "Per-route versioning, endpoint-specific versions, backwards compatibility."
-    },
-    {
-      "name": "Events",
-      "description": "Create, update, retrieve events and event-level resources (guests, coupons, ticket types)."
-    },
-    {
-      "name": "Guests",
-      "description": "Manage guests for events."
-    },
-    {
-      "name": "Ticket Types",
-      "description": "Manage ticket types for events."
-    },
-    {
-      "name": "Coupons",
-      "description": "Manage coupons at event and calendar scope."
-    },
-    {
-      "name": "Calendars",
-      "description": "Manage calendars and their resources."
-    },
-    {
-      "name": "People",
-      "description": "Manage people within calendars."
-    },
-    {
-      "name": "Person Tags",
-      "description": "Create, update, delete, and apply person tags within calendars."
-    },
-    {
-      "name": "Users",
-      "description": "Authenticated user and user utilities."
-    },
-    {
-      "name": "Images",
-      "description": "Image upload utilities."
-    },
-    {
-      "name": "Entities",
-      "description": "Lookup entities by ID or slug."
-    },
-    {
-      "name": "Code Examples",
-      "description": "Example project demonstrating usage: https://github.com/luma-team/basketball-club-example"
-    }
-  ],
-  "paths": {
-    "/v1/event/get": {
-      "get": {
-        "tags": [
-          "Events"
-        ],
-        "operationId": "getEvent",
-        "summary": "Get Event",
-        "description": "Retrieves detailed information for a single event by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                  |\n|------|-------|--------|----------|------------------------------|\n| id   | query | string | Yes      | ID of the event to retrieve. |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/idQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Event retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Event"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/create": {
-      "post": {
-        "tags": [
-          "Events"
-        ],
-        "operationId": "createEvent",
-        "summary": "Create Event",
-        "description": "Creates a new event in the Luma system.\n\nHeaders\n\n| Name           | Value                |\n|----------------|----------------------|\n| Accept         | application/json     |\n| Content-Type   | application/json     |\n| x-luma-api-key | Your API key         |\n\nRequest Body\n\n- The full schema is not provided in the source. Typical fields include: `name`, `start_time` (ISO 8601), `duration` (ISO 8601 duration), `location` (Google Place ID), etc.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EventCreateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Event created successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Event"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/update": {
-      "post": {
-        "tags": [
-          "Events"
-        ],
-        "operationId": "updateEvent",
-        "summary": "Update Event",
-        "description": "Updates properties of an existing event. Include only the fields you wish to change.\n\nRequest Body\n\n| Name       | Type   | Required | Description                                           |\n|------------|--------|----------|-------------------------------------------------------|\n| id         | string | Yes      | ID of the event to update.                            |\n| name       | string | No       | New name for the event.                               |\n| start_time | string | No       | New start time in ISO 8601 format (UTC).              |\n| duration   | string | No       | New duration in ISO 8601 duration format.             |\n| location   | string | No       | Updated location (Google Maps Place ID recommended).  |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EventUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Event updated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Event"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/get-guest": {
-      "get": {
-        "tags": [
-          "Guests"
-        ],
-        "operationId": "getGuest",
-        "summary": "Get Guest",
-        "description": "Retrieves detailed information for a single guest by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                  |\n|------|-------|--------|----------|------------------------------|\n| id   | query | string | Yes      | ID of the guest to retrieve. |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/idQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Guest retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Guest"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/get-guests": {
-      "get": {
-        "tags": [
-          "Guests"
-        ],
-        "operationId": "getGuests",
-        "summary": "Get Guests",
-        "description": "Retrieves a list of all guests associated with a specific event.\n\nParameters\n\n| Name     | In    | Type   | Required | Description                             |\n|----------|-------|--------|----------|-----------------------------------------|\n| event_id | query | string | Yes      | ID of the event to list guests for.     |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/eventIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Guests retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Guest"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/update-guest-status": {
-      "post": {
-        "tags": [
-          "Guests"
-        ],
-        "operationId": "updateGuestStatus",
-        "summary": "Update Guest Status",
-        "description": "Updates the attendance status of a guest for an event.\n\nRequest Body\n\n| Name     | Type   | Required | Description                                                         |\n|----------|--------|----------|---------------------------------------------------------------------|\n| status   | string | Yes      | New guest status (e.g., accepted, declined).                        |\n| guest_id | string | No       | ID of the guest to update. Likely required; see full API reference. |\n| event_id | string | No       | ID of the event (if required by your integration).                  |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateGuestStatusRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Guest status updated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/send-invites": {
-      "post": {
-        "tags": [
-          "Guests"
-        ],
-        "operationId": "sendEventInvites",
-        "summary": "Send Invites",
-        "description": "Sends invitation emails to specified guests for a given event.\n\nRequest Body\n\n| Name      | Type           | Required | Description                               |\n|-----------|----------------|----------|-------------------------------------------|\n| event_id  | string         | Yes      | ID of the event to send invites for.      |\n| guest_ids | array[string]  | Yes      | Guest IDs to send invitations to.         |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SendInvitesRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Invitations queued/sent successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/add-guests": {
-      "post": {
-        "tags": [
-          "Guests"
-        ],
-        "operationId": "addGuests",
-        "summary": "Add Guests",
-        "description": "Adds one or more new guests to a specified event.\n\nRequest Body\n\n| Name     | Type            | Required | Description                              |\n|----------|-----------------|----------|------------------------------------------|\n| event_id | string          | Yes      | ID of the event to add guests to.        |\n| guests   | array[object]   | Yes      | Array of guest objects (name, email).    |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddGuestsRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Guests added successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/add-host": {
-      "post": {
-        "tags": [
-          "Events"
-        ],
-        "operationId": "addEventHost",
-        "summary": "Add Host",
-        "description": "Adds a host to a specified event.\n\nRequest Body\n\n| Name     | Type   | Required | Description                                                                 |\n|----------|--------|----------|-----------------------------------------------------------------------------|\n| event_id | string | Yes      | ID of the event to add a host to.                                          |\n| host     | object | Yes      | Either existing host reference (id) or new host details (name, email).      |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddHostRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Host added to event successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/coupons": {
-      "get": {
-        "tags": [
-          "Coupons"
-        ],
-        "operationId": "listEventCoupons",
-        "summary": "List Event Coupons",
-        "description": "Retrieves all coupons associated with a specific event.\n\nParameters\n\n| Name     | In    | Type   | Required | Description                           |\n|----------|-------|--------|----------|---------------------------------------|\n| event_id | query | string | Yes      | ID of the event to list coupons for.  |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/eventIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Coupons listed successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Coupon"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/create-coupon": {
-      "post": {
-        "tags": [
-          "Coupons"
-        ],
-        "operationId": "createEventCoupon",
-        "summary": "Create Event Coupon",
-        "description": "Creates a new coupon for a specified event.\n\nRequest Body\n\n| Name            | Type   | Required | Description                                          |\n|-----------------|--------|----------|------------------------------------------------------|\n| event_id        | string | Yes      | ID of the event to associate the coupon with.        |\n| code            | string | Yes      | Unique coupon code.                                  |\n| discount_amount | number | Yes      | Amount to discount in USD.                           |\n| expires_at      | string | No       | Expiration in ISO 8601 (UTC).                        |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateEventCouponRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Event coupon created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Coupon"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/update-coupon": {
-      "post": {
-        "tags": [
-          "Coupons"
-        ],
-        "operationId": "updateEventCoupon",
-        "summary": "Update Event Coupon",
-        "description": "Updates properties of an existing event coupon.\n\nRequest Body\n\n| Name            | Type   | Required | Description                            |\n|-----------------|--------|----------|----------------------------------------|\n| id              | string | Yes      | ID of the coupon to update.            |\n| code            | string | No       | New unique coupon code.                |\n| discount_amount | number | No       | Updated discount amount in USD.        |\n| expires_at      | string | No       | New expiration in ISO 8601 (UTC).      |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateEventCouponRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Event coupon updated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Coupon"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/ticket-types/list": {
-      "get": {
-        "tags": [
-          "Ticket Types"
-        ],
-        "operationId": "listTicketTypes",
-        "summary": "List Ticket Types",
-        "description": "Retrieves all ticket types associated with a specific event.\n\nParameters\n\n| Name     | In    | Type   | Required | Description                               |\n|----------|-------|--------|----------|-------------------------------------------|\n| event_id | query | string | Yes      | ID of the event to list ticket types for. |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/eventIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Ticket types listed successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TicketType"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/ticket-types/get": {
-      "get": {
-        "tags": [
-          "Ticket Types"
-        ],
-        "operationId": "getTicketType",
-        "summary": "Get Ticket Type",
-        "description": "Retrieves detailed information for a single ticket type by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                         |\n|------|-------|--------|----------|-------------------------------------|\n| id   | query | string | Yes      | ID of the ticket type to retrieve. |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/idQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Ticket type retrieved successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketType"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/ticket-types/create": {
-      "post": {
-        "tags": [
-          "Ticket Types"
-        ],
-        "operationId": "createTicketType",
-        "summary": "Create Ticket Type",
-        "description": "Creates a new ticket type under a specified event.\n\nRequest Body\n\n| Name     | Type   | Required | Description                                      |\n|----------|--------|----------|--------------------------------------------------|\n| event_id | string | Yes      | ID of the event to associate the ticket type.   |\n| name     | string | Yes      | Name of the new ticket type.                    |\n| price    | number | No       | Price in USD (required for paid tickets).       |\n| type     | string | No       | Ticket type (e.g., free, paid).                 |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TicketTypeCreateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Ticket type created successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketType"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/ticket-types/update": {
-      "post": {
-        "tags": [
-          "Ticket Types"
-        ],
-        "operationId": "updateTicketType",
-        "summary": "Update Ticket Type",
-        "description": "Updates properties of an existing ticket type.\n\nRequest Body\n\n| Name  | Type   | Required | Description                               |\n|-------|--------|----------|-------------------------------------------|\n| id    | string | Yes      | ID of the ticket type to update.          |\n| name  | string | No       | New name for the ticket type.             |\n| price | number | No       | New price for the ticket type in USD.     |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TicketTypeUpdateRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Ticket type updated successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TicketType"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/event/ticket-types/delete": {
-      "post": {
-        "tags": [
-          "Ticket Types"
-        ],
-        "operationId": "deleteTicketType",
-        "summary": "Delete Ticket Type",
-        "description": "Deletes a ticket type by its ID.\n\nRequest Body\n\n| Name | Type   | Required | Description                         |\n|------|--------|----------|-------------------------------------|\n| id   | string | Yes      | ID of the ticket type to delete.    |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteByIdRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Ticket type deleted successfully."
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/list-events": {
-      "get": {
-        "tags": [
-          "Calendars"
-        ],
-        "operationId": "listCalendarEvents",
-        "summary": "List Events",
-        "description": "Retrieves all events associated with a specific calendar.\n\nParameters\n\n| Name        | In    | Type   | Required | Description                             |\n|-------------|-------|--------|----------|-----------------------------------------|\n| calendar_id | query | string | Yes      | ID of the calendar to list events for.  |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/calendarIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Events listed successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Event"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/list-person-tags": {
-      "get": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "listPersonTags",
-        "summary": "List Person Tags",
-        "description": "Retrieves all person tags available in the calendar system.",
-        "responses": {
-          "200": {
-            "description": "Person tags listed successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PersonTag"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/lookup-event": {
-      "get": {
-        "tags": [
-          "Calendars"
-        ],
-        "operationId": "lookupCalendarEvent",
-        "summary": "Lookup Event",
-        "description": "Retrieves detailed information for a calendar event by its identifier.\n\nParameters\n\n| Name | In    | Type   | Required | Description                             |\n|------|-------|--------|----------|-----------------------------------------|\n| id   | query | string | Yes      | ID of the event to look up.             |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/idQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Event looked up successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Event"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/list-people": {
-      "get": {
-        "tags": [
-          "People"
-        ],
-        "operationId": "listPeople",
-        "summary": "List People",
-        "description": "Retrieves all people associated with a specific calendar.\n\nParameters\n\n| Name        | In    | Type   | Required | Description                            |\n|-------------|-------|--------|----------|----------------------------------------|\n| calendar_id | query | string | Yes      | ID of the calendar to list people for. |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/calendarIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "People listed successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Person"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/coupons": {
-      "get": {
-        "tags": [
-          "Coupons"
-        ],
-        "operationId": "listCalendarCoupons",
-        "summary": "List Calendar Coupons",
-        "description": "Retrieves all coupons associated with a specific calendar.\n\nParameters\n\n| Name        | In    | Type   | Required | Description                                |\n|-------------|-------|--------|----------|--------------------------------------------|\n| calendar_id | query | string | Yes      | ID of the calendar to list coupons for.    |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/calendarIdQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Coupons listed successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Coupon"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/coupons/create": {
-      "post": {
-        "tags": [
-          "Coupons"
-        ],
-        "operationId": "createCalendarCoupon",
-        "summary": "Create Calendar Coupon",
-        "description": "Creates a new coupon for a specified calendar.\n\nRequest Body\n\n| Name            | Type   | Required | Description                                          |\n|-----------------|--------|----------|------------------------------------------------------|\n| calendar_id     | string | Yes      | ID of the calendar to associate the coupon with.     |\n| code            | string | Yes      | Unique coupon code.                                  |\n| discount_amount | number | Yes      | Amount to discount in USD.                           |\n| expires_at      | string | No       | Expiration in ISO 8601 (UTC).                        |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCalendarCouponRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Calendar coupon created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Coupon"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/coupons/update": {
-      "post": {
-        "tags": [
-          "Coupons"
-        ],
-        "operationId": "updateCalendarCoupon",
-        "summary": "Update Calendar Coupon",
-        "description": "Updates properties of an existing calendar coupon.\n\nRequest Body\n\n| Name            | Type   | Required | Description                            |\n|-----------------|--------|----------|----------------------------------------|\n| id              | string | Yes      | ID of the coupon to update.            |\n| code            | string | No       | New unique coupon code.                |\n| discount_amount | number | No       | Updated discount amount in USD.        |\n| expires_at      | string | No       | New expiration in ISO 8601 (UTC).      |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateCalendarCouponRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Calendar coupon updated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Coupon"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/import-people": {
-      "post": {
-        "tags": [
-          "People"
-        ],
-        "operationId": "importPeople",
-        "summary": "Import People",
-        "description": "Imports multiple people into a specified calendar in bulk.\n\nRequest Body\n\n| Name        | Type            | Required | Description                             |\n|-------------|-----------------|----------|-----------------------------------------|\n| calendar_id | string          | Yes      | ID of the calendar to import people to. |\n| people      | array[object]   | Yes      | Array of person objects.                |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ImportPeopleRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "People imported successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/create-person-tag": {
-      "post": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "createPersonTag",
-        "summary": "Create Person Tag",
-        "description": "Creates a new tag that can be assigned to people within a specified calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                               |\n|-------------|--------|----------|-------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar to scope the tag.      |\n| name        | string | Yes      | Name of the new person tag.               |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePersonTagRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Person tag created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonTag"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/update-person-tag": {
-      "post": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "updatePersonTag",
-        "summary": "Update Person Tag",
-        "description": "Updates the name of an existing person tag within a calendar.\n\nRequest Body\n\n| Name | Type   | Required | Description                         |\n|------|--------|----------|-------------------------------------|\n| id   | string | Yes      | ID of the person tag to update.     |\n| name | string | Yes      | New name for the person tag.        |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePersonTagRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Person tag updated.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PersonTag"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/delete-person-tag": {
-      "post": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "deletePersonTag",
-        "summary": "Delete Person Tag",
-        "description": "Deletes an existing person tag by its ID.\n\nRequest Body\n\n| Name | Type   | Required | Description                     |\n|------|--------|----------|---------------------------------|\n| id   | string | Yes      | ID of the person tag to delete. |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeleteByIdRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Person tag deleted."
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/add-event": {
-      "post": {
-        "tags": [
-          "Calendars"
-        ],
-        "operationId": "addEventToCalendar",
-        "summary": "Add Event to Calendar",
-        "description": "Adds an existing event to a specified calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                               |\n|-------------|--------|----------|-------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar.                       |\n| event_id    | string | Yes      | ID of the event to add.                   |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AddCalendarEventRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Event added to calendar.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/person-tags/apply": {
-      "post": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "applyPersonTag",
-        "summary": "Apply Person Tag",
-        "description": "Assigns an existing person tag to a specific person within a calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                                  |\n|-------------|--------|----------|----------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar where the tag is applied. |\n| tag_id      | string | Yes      | ID of the person tag to apply.               |\n| person_id   | string | Yes      | ID of the person to assign the tag to.       |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApplyPersonTagRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tag applied to person.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/person-tags/remove": {
-      "post": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "removePersonTag",
-        "summary": "Remove Person Tag",
-        "description": "Removes an assigned person tag from a specific person within a calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                                    |\n|-------------|--------|----------|------------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar from which to remove tag.   |\n| tag_id      | string | Yes      | ID of the person tag to remove.                |\n| person_id   | string | Yes      | ID of the person from whom the tag is removed. |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RemovePersonTagRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tag removed from person.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/calendar/person-tags/unapply": {
-      "post": {
-        "tags": [
-          "Person Tags"
-        ],
-        "operationId": "unapplyPersonTag",
-        "summary": "Unapply Person Tag",
-        "description": "Removes an assigned person tag from a specific person within a calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                                    |\n|-------------|--------|----------|------------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar from which to remove tag.   |\n| tag_id      | string | Yes      | ID of the person tag to unapply.               |\n| person_id   | string | Yes      | ID of the person from whom the tag is removed. |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RemovePersonTagRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Tag unapplied from person.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/user/get-self": {
-      "get": {
-        "tags": [
-          "Users"
-        ],
-        "operationId": "getSelf",
-        "summary": "Get Self",
-        "description": "Retrieves information about the currently authenticated user.",
-        "responses": {
-          "200": {
-            "description": "Authenticated user's profile details.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/user/lookup-entity": {
-      "get": {
-        "tags": [
-          "Users"
-        ],
-        "operationId": "lookupUserEntity",
-        "summary": "Lookup Entity (User scope)",
-        "description": "Retrieves detailed information for a specified entity by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                   |\n|------|-------|--------|----------|-------------------------------|\n| id   | query | string | Yes      | ID of the entity to look up.  |",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/idQuery"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Entity retrieved.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Entity"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/user/create-upload-url": {
-      "post": {
-        "tags": [
-          "Users"
-        ],
-        "operationId": "createUserUploadUrl",
-        "summary": "Create Upload URL (User)",
-        "description": "Generates a pre-signed URL for uploading a file directly to storage.\n\nRequest Body\n\n| Name       | Type   | Required | Description                      |\n|------------|--------|----------|----------------------------------|\n| file_name  | string | Yes      | Name of the file to be uploaded. |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserUploadUrlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Upload URL created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadUrlResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/entity/lookup": {
-      "get": {
-        "tags": [
-          "Entities"
-        ],
-        "operationId": "lookupEntityBySlug",
-        "summary": "Lookup Entity (by Slug)",
-        "description": "Retrieves detailed information for an entity based on its slug identifier.\n\nParameters\n\n| Name | In    | Type   | Required | Description                         |\n|------|-------|--------|----------|-------------------------------------|\n| slug | query | string | Yes      | Slug identifier of the entity.      |",
-        "parameters": [
-          {
-            "name": "slug",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Slug identifier of the entity to look up."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Entity retrieved.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Entity"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFound"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    },
-    "/v1/images/create-upload-url": {
-      "post": {
-        "tags": [
-          "Images"
-        ],
-        "operationId": "createImageUploadUrl",
-        "summary": "Create Upload URL (Image)",
-        "description": "Generates a pre-signed URL for uploading an image to be used in the Luma system.\n\nRequest Body\n\n| Name         | Type           | Required | Description                                               |\n|--------------|----------------|----------|-----------------------------------------------------------|\n| purpose      | string         | Yes      | Intended use of the uploaded image (allowed: event-cover).|\n| content_type | string or null | No       | MIME type (e.g., image/jpeg). If null, server may infer.  |",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateImageUploadUrlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Upload URL created.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadUrlResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "429": {
-            "$ref": "#/components/responses/TooManyRequests"
-          },
-          "500": {
-            "$ref": "#/components/responses/ServerError"
-          }
-        },
-        "security": [
-          {
-            "LumaApiKey": []
-          }
-        ]
-      }
-    }
-  },
-  "components": {
-    "securitySchemes": {
-      "LumaApiKey": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "x-luma-api-key",
-        "description": "Authenticate by including your API key in the x-luma-api-key header."
-      }
-    },
-    "parameters": {
-      "idQuery": {
-        "name": "id",
-        "in": "query",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Unique identifier."
-      },
-      "eventIdQuery": {
-        "name": "event_id",
-        "in": "query",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Event ID."
-      },
-      "calendarIdQuery": {
-        "name": "calendar_id",
-        "in": "query",
-        "required": true,
-        "schema": {
-          "type": "string"
-        },
-        "description": "Calendar ID."
-      }
-    },
-    "responses": {
-      "BadRequest": {
-        "description": "Bad Request",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
+    "servers": [
+        {
+            "url": "https://public-api.luma.com"
         }
-      },
-      "Unauthorized": {
-        "description": "Unauthorized – missing or invalid x-luma-api-key",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      },
-      "NotFound": {
-        "description": "Resource not found",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      },
-      "Conflict": {
-        "description": "Conflict (e.g., duplicate code)",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      },
-      "TooManyRequests": {
-        "description": "Too Many Requests – rate limit exceeded (blocked for 1 minute)",
-        "headers": {
-          "Retry-After": {
-            "description": "Seconds until you may retry the request.",
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            }
-          }
+    ],
+    "tags": [
+        {
+            "name": "Getting Started",
+            "description": "Make your first request in minutes. Authenticate using x-luma-api-key."
         },
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      },
-      "ServerError": {
-        "description": "Internal Server Error",
-        "content": {
-          "application/json": {
-            "schema": {
-              "$ref": "#/components/schemas/Error"
-            }
-          }
-        }
-      }
-    },
-    "schemas": {
-      "Event": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "evt_123"
-          },
-          "name": {
-            "type": "string",
-            "example": "Community Meetup"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "example": "2023-05-01T10:00:00.000Z",
-            "description": "ISO 8601 UTC timestamp."
-          },
-          "duration": {
-            "type": "string",
-            "example": "PT1H30M",
-            "description": "ISO 8601 duration."
-          },
-          "location": {
-            "type": "string",
-            "description": "Location identifier. Recommended: Google Maps Place ID."
-          }
+        {
+            "name": "API Formats",
+            "description": "Dates and durations use ISO 8601. All times are UTC. Locations use Google Maps Place IDs."
         },
-        "additionalProperties": true
-      },
-      "EventCreateRequest": {
-        "type": "object",
-        "description": "The complete schema is not provided. Typical fields include `name`, `start_time` (ISO 8601 UTC), `duration` (ISO 8601 duration), `location` (Google Place ID), etc.",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "ISO 8601 UTC."
-          },
-          "duration": {
-            "type": "string",
-            "description": "ISO 8601 duration."
-          },
-          "location": {
-            "type": "string",
-            "description": "Google Maps Place ID recommended."
-          }
+        {
+            "name": "Rate Limits",
+            "description": "GET: 500/5min/calendar, POST: 100/5min/calendar. 429 when exceeded; 1 minute block."
         },
-        "additionalProperties": true
-      },
-      "EventUpdateRequest": {
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "description": "ISO 8601 UTC."
-          },
-          "duration": {
-            "type": "string",
-            "description": "ISO 8601 duration."
-          },
-          "location": {
-            "type": "string",
-            "description": "Google Maps Place ID recommended."
-          }
+        {
+            "name": "API Conventions",
+            "description": "Per-route versioning, endpoint-specific versions, backwards compatibility."
         },
-        "additionalProperties": true
-      },
-      "Guest": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "gst_321"
-          },
-          "name": {
-            "type": "string",
-            "example": "Jane Doe"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "jane@example.com"
-          },
-          "status": {
-            "type": "string",
-            "example": "accepted"
-          },
-          "event_id": {
-            "type": "string",
-            "example": "evt_123"
-          }
+        {
+            "name": "Events",
+            "description": "Create, update, retrieve events and event-level resources (guests, coupons, ticket types)."
         },
-        "additionalProperties": true
-      },
-      "GuestInput": {
-        "type": "object",
-        "required": [
-          "name",
-          "email"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          }
+        {
+            "name": "Guests",
+            "description": "Manage guests for events."
         },
-        "additionalProperties": true
-      },
-      "AddGuestsRequest": {
-        "type": "object",
-        "required": [
-          "event_id",
-          "guests"
-        ],
-        "properties": {
-          "event_id": {
-            "type": "string"
-          },
-          "guests": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/GuestInput"
-            },
-            "minItems": 1
-          }
-        }
-      },
-      "UpdateGuestStatusRequest": {
-        "type": "object",
-        "required": [
-          "status"
-        ],
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "New guest status (e.g., accepted, declined)."
-          },
-          "guest_id": {
-            "type": "string",
-            "description": "ID of the guest to update. Likely required; see full API reference."
-          },
-          "event_id": {
-            "type": "string",
-            "description": "ID of the event (if required by your integration)."
-          }
+        {
+            "name": "Ticket Types",
+            "description": "Manage ticket types for events."
         },
-        "additionalProperties": true
-      },
-      "SendInvitesRequest": {
-        "type": "object",
-        "required": [
-          "event_id",
-          "guest_ids"
-        ],
-        "properties": {
-          "event_id": {
-            "type": "string"
-          },
-          "guest_ids": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1
-          }
-        }
-      },
-      "TicketType": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "tt_456"
-          },
-          "event_id": {
-            "type": "string",
-            "example": "evt_123"
-          },
-          "name": {
-            "type": "string",
-            "example": "General Admission"
-          },
-          "price": {
-            "type": "number",
-            "example": 25.0
-          },
-          "type": {
-            "type": "string",
-            "example": "paid"
-          }
+        {
+            "name": "Coupons",
+            "description": "Manage coupons at event and calendar scope."
         },
-        "additionalProperties": true
-      },
-      "TicketTypeCreateRequest": {
-        "type": "object",
-        "required": [
-          "event_id",
-          "name"
-        ],
-        "properties": {
-          "event_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "price": {
-            "type": "number",
-            "description": "Required for paid tickets."
-          },
-          "type": {
-            "type": "string",
-            "description": "Ticket type (e.g., free, paid)."
-          }
+        {
+            "name": "Calendars",
+            "description": "Manage calendars and their resources."
         },
-        "additionalProperties": true
-      },
-      "TicketTypeUpdateRequest": {
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          },
-          "price": {
-            "type": "number"
-          }
+        {
+            "name": "People",
+            "description": "Manage people within calendars."
         },
-        "additionalProperties": true
-      },
-      "DeleteByIdRequest": {
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          }
-        }
-      },
-      "Coupon": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "coup_789"
-          },
-          "code": {
-            "type": "string",
-            "example": "SUMMER10"
-          },
-          "discount_amount": {
-            "type": "number",
-            "example": 10.0
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          },
-          "event_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "calendar_id": {
-            "type": "string",
-            "nullable": true
-          }
+        {
+            "name": "Person Tags",
+            "description": "Create, update, delete, and apply person tags within calendars."
         },
-        "additionalProperties": true
-      },
-      "CreateEventCouponRequest": {
-        "type": "object",
-        "required": [
-          "event_id",
-          "code",
-          "discount_amount"
-        ],
-        "properties": {
-          "event_id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "discount_amount": {
-            "type": "number"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "UpdateEventCouponRequest": {
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "discount_amount": {
-            "type": "number"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "CreateCalendarCouponRequest": {
-        "type": "object",
-        "required": [
-          "calendar_id",
-          "code",
-          "discount_amount"
-        ],
-        "properties": {
-          "calendar_id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "discount_amount": {
-            "type": "number"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "UpdateCalendarCouponRequest": {
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          },
-          "discount_amount": {
-            "type": "number"
-          },
-          "expires_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "Person": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "usr_789"
-          },
-          "name": {
-            "type": "string",
-            "example": "John Doe"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "example": "john.doe@example.com"
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PersonTag"
-            }
-          }
+        {
+            "name": "Users",
+            "description": "Authenticated user and user utilities."
         },
-        "additionalProperties": true
-      },
-      "PersonInput": {
-        "type": "object",
-        "required": [
-          "name",
-          "email"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
-          }
+        {
+            "name": "Images",
+            "description": "Image upload utilities."
         },
-        "additionalProperties": true
-      },
-      "ImportPeopleRequest": {
-        "type": "object",
-        "required": [
-          "calendar_id",
-          "people"
-        ],
-        "properties": {
-          "calendar_id": {
-            "type": "string"
-          },
-          "people": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PersonInput"
-            },
-            "minItems": 1
-          }
-        }
-      },
-      "PersonTag": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "example": "pt_987"
-          },
-          "name": {
-            "type": "string",
-            "example": "VIP"
-          },
-          "calendar_id": {
-            "type": "string",
-            "example": "cal_123"
-          }
+        {
+            "name": "Entities",
+            "description": "Lookup entities by ID or slug."
         },
-        "additionalProperties": true
-      },
-      "CreatePersonTagRequest": {
-        "type": "object",
-        "required": [
-          "calendar_id",
-          "name"
-        ],
-        "properties": {
-          "calendar_id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
+        {
+            "name": "Code Examples",
+            "description": "Example project demonstrating usage: https://github.com/luma-team/basketball-club-example"
         }
-      },
-      "UpdatePersonTagRequest": {
-        "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "ApplyPersonTagRequest": {
-        "type": "object",
-        "required": [
-          "calendar_id",
-          "tag_id",
-          "person_id"
-        ],
-        "properties": {
-          "calendar_id": {
-            "type": "string"
-          },
-          "tag_id": {
-            "type": "string"
-          },
-          "person_id": {
-            "type": "string"
-          }
-        }
-      },
-      "RemovePersonTagRequest": {
-        "type": "object",
-        "required": [
-          "calendar_id",
-          "tag_id",
-          "person_id"
-        ],
-        "properties": {
-          "calendar_id": {
-            "type": "string"
-          },
-          "tag_id": {
-            "type": "string"
-          },
-          "person_id": {
-            "type": "string"
-          }
-        }
-      },
-      "AddCalendarEventRequest": {
-        "type": "object",
-        "required": [
-          "calendar_id",
-          "event_id"
-        ],
-        "properties": {
-          "calendar_id": {
-            "type": "string"
-          },
-          "event_id": {
-            "type": "string"
-          }
-        }
-      },
-      "AddHostRequest": {
-        "type": "object",
-        "required": [
-          "event_id",
-          "host"
-        ],
-        "properties": {
-          "event_id": {
-            "type": "string"
-          },
-          "host": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "id"
+    ],
+    "paths": {
+        "/v1/event/get": {
+            "get": {
+                "tags": ["Events"],
+                "operationId": "getEvent",
+                "summary": "Get Event",
+                "description": "Retrieves detailed information for a single event by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                  |\n|------|-------|--------|----------|------------------------------|\n| id   | query | string | Yes      | ID of the event to retrieve. |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/idQuery"
+                    }
                 ],
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "description": "Existing host ID."
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "name",
-                  "email"
+                "responses": {
+                    "200": {
+                        "description": "Event retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Event"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/create": {
+            "post": {
+                "tags": ["Events"],
+                "operationId": "createEvent",
+                "summary": "Create Event",
+                "description": "Creates a new event in the Luma system.\n\nHeaders\n\n| Name           | Value                |\n|----------------|----------------------|\n| Accept         | application/json     |\n| Content-Type   | application/json     |\n| x-luma-api-key | Your API key         |\n\nRequest Body\n\n- The full schema is not provided in the source. Typical fields include: `name`, `start_time` (ISO 8601), `duration` (ISO 8601 duration), `location` (Google Place ID), etc.",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EventCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event created successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Event"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/update": {
+            "post": {
+                "tags": ["Events"],
+                "operationId": "updateEvent",
+                "summary": "Update Event",
+                "description": "Updates properties of an existing event. Include only the fields you wish to change.\n\nRequest Body\n\n| Name       | Type   | Required | Description                                           |\n|------------|--------|----------|-------------------------------------------------------|\n| id         | string | Yes      | ID of the event to update.                            |\n| name       | string | No       | New name for the event.                               |\n| start_time | string | No       | New start time in ISO 8601 format (UTC).              |\n| duration   | string | No       | New duration in ISO 8601 duration format.             |\n| location   | string | No       | Updated location (Google Maps Place ID recommended).  |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EventUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event updated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Event"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/get-guest": {
+            "get": {
+                "tags": ["Guests"],
+                "operationId": "getGuest",
+                "summary": "Get Guest",
+                "description": "Retrieves detailed information for a single guest by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                  |\n|------|-------|--------|----------|------------------------------|\n| id   | query | string | Yes      | ID of the guest to retrieve. |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/idQuery"
+                    }
                 ],
-                "properties": {
-                  "name": {
+                "responses": {
+                    "200": {
+                        "description": "Guest retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Guest"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/get-guests": {
+            "get": {
+                "tags": ["Guests"],
+                "operationId": "getGuests",
+                "summary": "Get Guests",
+                "description": "Retrieves a list of all guests associated with a specific event.\n\nParameters\n\n| Name     | In    | Type   | Required | Description                             |\n|----------|-------|--------|----------|-----------------------------------------|\n| event_id | query | string | Yes      | ID of the event to list guests for.     |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/eventIdQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Guests retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Guest"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/update-guest-status": {
+            "post": {
+                "tags": ["Guests"],
+                "operationId": "updateGuestStatus",
+                "summary": "Update Guest Status",
+                "description": "Updates the attendance status of a guest for an event.\n\nRequest Body\n\n| Name     | Type   | Required | Description                                                         |\n|----------|--------|----------|---------------------------------------------------------------------|\n| status   | string | Yes      | New guest status (e.g., accepted, declined).                        |\n| guest_id | string | No       | ID of the guest to update. Likely required; see full API reference. |\n| event_id | string | No       | ID of the event (if required by your integration).                  |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateGuestStatusRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Guest status updated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/send-invites": {
+            "post": {
+                "tags": ["Guests"],
+                "operationId": "sendEventInvites",
+                "summary": "Send Invites",
+                "description": "Sends invitation emails to specified guests for a given event.\n\nRequest Body\n\n| Name      | Type           | Required | Description                               |\n|-----------|----------------|----------|-------------------------------------------|\n| event_id  | string         | Yes      | ID of the event to send invites for.      |\n| guest_ids | array[string]  | Yes      | Guest IDs to send invitations to.         |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SendInvitesRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Invitations queued/sent successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/add-guests": {
+            "post": {
+                "tags": ["Guests"],
+                "operationId": "addGuests",
+                "summary": "Add Guests",
+                "description": "Adds one or more new guests to a specified event.\n\nRequest Body\n\n| Name     | Type            | Required | Description                              |\n|----------|-----------------|----------|------------------------------------------|\n| event_id | string          | Yes      | ID of the event to add guests to.        |\n| guests   | array[object]   | Yes      | Array of guest objects (name, email).    |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddGuestsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Guests added successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/add-host": {
+            "post": {
+                "tags": ["Events"],
+                "operationId": "addEventHost",
+                "summary": "Add Host",
+                "description": "Adds a host to a specified event.\n\nRequest Body\n\n| Name     | Type   | Required | Description                                                                 |\n|----------|--------|----------|-----------------------------------------------------------------------------|\n| event_id | string | Yes      | ID of the event to add a host to.                                          |\n| host     | object | Yes      | Either existing host reference (id) or new host details (name, email).      |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddHostRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Host added to event successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/coupons": {
+            "get": {
+                "tags": ["Coupons"],
+                "operationId": "listEventCoupons",
+                "summary": "List Event Coupons",
+                "description": "Retrieves all coupons associated with a specific event.\n\nParameters\n\n| Name     | In    | Type   | Required | Description                           |\n|----------|-------|--------|----------|---------------------------------------|\n| event_id | query | string | Yes      | ID of the event to list coupons for.  |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/eventIdQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Coupons listed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Coupon"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/create-coupon": {
+            "post": {
+                "tags": ["Coupons"],
+                "operationId": "createEventCoupon",
+                "summary": "Create Event Coupon",
+                "description": "Creates a new coupon for a specified event.\n\nRequest Body\n\n| Name            | Type   | Required | Description                                          |\n|-----------------|--------|----------|------------------------------------------------------|\n| event_id        | string | Yes      | ID of the event to associate the coupon with.        |\n| code            | string | Yes      | Unique coupon code.                                  |\n| discount_amount | number | Yes      | Amount to discount in USD.                           |\n| expires_at      | string | No       | Expiration in ISO 8601 (UTC).                        |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateEventCouponRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event coupon created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Coupon"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/update-coupon": {
+            "post": {
+                "tags": ["Coupons"],
+                "operationId": "updateEventCoupon",
+                "summary": "Update Event Coupon",
+                "description": "Updates properties of an existing event coupon.\n\nRequest Body\n\n| Name            | Type   | Required | Description                            |\n|-----------------|--------|----------|----------------------------------------|\n| id              | string | Yes      | ID of the coupon to update.            |\n| code            | string | No       | New unique coupon code.                |\n| discount_amount | number | No       | Updated discount amount in USD.        |\n| expires_at      | string | No       | New expiration in ISO 8601 (UTC).      |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateEventCouponRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event coupon updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Coupon"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/ticket-types/list": {
+            "get": {
+                "tags": ["Ticket Types"],
+                "operationId": "listTicketTypes",
+                "summary": "List Ticket Types",
+                "description": "Retrieves all ticket types associated with a specific event.\n\nParameters\n\n| Name     | In    | Type   | Required | Description                               |\n|----------|-------|--------|----------|-------------------------------------------|\n| event_id | query | string | Yes      | ID of the event to list ticket types for. |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/eventIdQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket types listed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/TicketType"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/ticket-types/get": {
+            "get": {
+                "tags": ["Ticket Types"],
+                "operationId": "getTicketType",
+                "summary": "Get Ticket Type",
+                "description": "Retrieves detailed information for a single ticket type by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                         |\n|------|-------|--------|----------|-------------------------------------|\n| id   | query | string | Yes      | ID of the ticket type to retrieve. |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/idQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Ticket type retrieved successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketType"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/ticket-types/create": {
+            "post": {
+                "tags": ["Ticket Types"],
+                "operationId": "createTicketType",
+                "summary": "Create Ticket Type",
+                "description": "Creates a new ticket type under a specified event.\n\nRequest Body\n\n| Name     | Type   | Required | Description                                      |\n|----------|--------|----------|--------------------------------------------------|\n| event_id | string | Yes      | ID of the event to associate the ticket type.   |\n| name     | string | Yes      | Name of the new ticket type.                    |\n| price    | number | No       | Price in USD (required for paid tickets).       |\n| type     | string | No       | Ticket type (e.g., free, paid).                 |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TicketTypeCreateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ticket type created successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketType"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/ticket-types/update": {
+            "post": {
+                "tags": ["Ticket Types"],
+                "operationId": "updateTicketType",
+                "summary": "Update Ticket Type",
+                "description": "Updates properties of an existing ticket type.\n\nRequest Body\n\n| Name  | Type   | Required | Description                               |\n|-------|--------|----------|-------------------------------------------|\n| id    | string | Yes      | ID of the ticket type to update.          |\n| name  | string | No       | New name for the ticket type.             |\n| price | number | No       | New price for the ticket type in USD.     |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TicketTypeUpdateRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ticket type updated successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TicketType"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/event/ticket-types/delete": {
+            "post": {
+                "tags": ["Ticket Types"],
+                "operationId": "deleteTicketType",
+                "summary": "Delete Ticket Type",
+                "description": "Deletes a ticket type by its ID.\n\nRequest Body\n\n| Name | Type   | Required | Description                         |\n|------|--------|----------|-------------------------------------|\n| id   | string | Yes      | ID of the ticket type to delete.    |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeleteByIdRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ticket type deleted successfully."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/list-events": {
+            "get": {
+                "tags": ["Calendars"],
+                "operationId": "listCalendarEvents",
+                "summary": "List Events",
+                "description": "Retrieves all events associated with a specific calendar.\n\nParameters\n\n| Name        | In    | Type   | Required | Description                             |\n|-------------|-------|--------|----------|-----------------------------------------|\n| calendar_id | query | string | Yes      | ID of the calendar to list events for.  |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/calendarIdQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Events listed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Event"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/list-person-tags": {
+            "get": {
+                "tags": ["Person Tags"],
+                "operationId": "listPersonTags",
+                "summary": "List Person Tags",
+                "description": "Retrieves all person tags available in the calendar system.",
+                "responses": {
+                    "200": {
+                        "description": "Person tags listed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/PersonTag"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/lookup-event": {
+            "get": {
+                "tags": ["Calendars"],
+                "operationId": "lookupCalendarEvent",
+                "summary": "Lookup Event",
+                "description": "Retrieves detailed information for a calendar event by its identifier.\n\nParameters\n\n| Name | In    | Type   | Required | Description                             |\n|------|-------|--------|----------|-----------------------------------------|\n| id   | query | string | Yes      | ID of the event to look up.             |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/idQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Event looked up successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Event"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/list-people": {
+            "get": {
+                "tags": ["People"],
+                "operationId": "listPeople",
+                "summary": "List People",
+                "description": "Retrieves all people associated with a specific calendar.\n\nParameters\n\n| Name        | In    | Type   | Required | Description                            |\n|-------------|-------|--------|----------|----------------------------------------|\n| calendar_id | query | string | Yes      | ID of the calendar to list people for. |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/calendarIdQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "People listed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Person"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/coupons": {
+            "get": {
+                "tags": ["Coupons"],
+                "operationId": "listCalendarCoupons",
+                "summary": "List Calendar Coupons",
+                "description": "Retrieves all coupons associated with a specific calendar.\n\nParameters\n\n| Name        | In    | Type   | Required | Description                                |\n|-------------|-------|--------|----------|--------------------------------------------|\n| calendar_id | query | string | Yes      | ID of the calendar to list coupons for.    |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/calendarIdQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Coupons listed successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Coupon"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/coupons/create": {
+            "post": {
+                "tags": ["Coupons"],
+                "operationId": "createCalendarCoupon",
+                "summary": "Create Calendar Coupon",
+                "description": "Creates a new coupon for a specified calendar.\n\nRequest Body\n\n| Name            | Type   | Required | Description                                          |\n|-----------------|--------|----------|------------------------------------------------------|\n| calendar_id     | string | Yes      | ID of the calendar to associate the coupon with.     |\n| code            | string | Yes      | Unique coupon code.                                  |\n| discount_amount | number | Yes      | Amount to discount in USD.                           |\n| expires_at      | string | No       | Expiration in ISO 8601 (UTC).                        |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCalendarCouponRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Calendar coupon created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Coupon"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/coupons/update": {
+            "post": {
+                "tags": ["Coupons"],
+                "operationId": "updateCalendarCoupon",
+                "summary": "Update Calendar Coupon",
+                "description": "Updates properties of an existing calendar coupon.\n\nRequest Body\n\n| Name            | Type   | Required | Description                            |\n|-----------------|--------|----------|----------------------------------------|\n| id              | string | Yes      | ID of the coupon to update.            |\n| code            | string | No       | New unique coupon code.                |\n| discount_amount | number | No       | Updated discount amount in USD.        |\n| expires_at      | string | No       | New expiration in ISO 8601 (UTC).      |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateCalendarCouponRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Calendar coupon updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Coupon"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/import-people": {
+            "post": {
+                "tags": ["People"],
+                "operationId": "importPeople",
+                "summary": "Import People",
+                "description": "Imports multiple people into a specified calendar in bulk.\n\nRequest Body\n\n| Name        | Type            | Required | Description                             |\n|-------------|-----------------|----------|-----------------------------------------|\n| calendar_id | string          | Yes      | ID of the calendar to import people to. |\n| people      | array[object]   | Yes      | Array of person objects.                |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ImportPeopleRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "People imported successfully.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/create-person-tag": {
+            "post": {
+                "tags": ["Person Tags"],
+                "operationId": "createPersonTag",
+                "summary": "Create Person Tag",
+                "description": "Creates a new tag that can be assigned to people within a specified calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                               |\n|-------------|--------|----------|-------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar to scope the tag.      |\n| name        | string | Yes      | Name of the new person tag.               |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreatePersonTagRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person tag created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PersonTag"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/update-person-tag": {
+            "post": {
+                "tags": ["Person Tags"],
+                "operationId": "updatePersonTag",
+                "summary": "Update Person Tag",
+                "description": "Updates the name of an existing person tag within a calendar.\n\nRequest Body\n\n| Name | Type   | Required | Description                         |\n|------|--------|----------|-------------------------------------|\n| id   | string | Yes      | ID of the person tag to update.     |\n| name | string | Yes      | New name for the person tag.        |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePersonTagRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person tag updated.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PersonTag"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/delete-person-tag": {
+            "post": {
+                "tags": ["Person Tags"],
+                "operationId": "deletePersonTag",
+                "summary": "Delete Person Tag",
+                "description": "Deletes an existing person tag by its ID.\n\nRequest Body\n\n| Name | Type   | Required | Description                     |\n|------|--------|----------|---------------------------------|\n| id   | string | Yes      | ID of the person tag to delete. |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/DeleteByIdRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Person tag deleted."
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/add-event": {
+            "post": {
+                "tags": ["Calendars"],
+                "operationId": "addEventToCalendar",
+                "summary": "Add Event to Calendar",
+                "description": "Adds an existing event to a specified calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                               |\n|-------------|--------|----------|-------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar.                       |\n| event_id    | string | Yes      | ID of the event to add.                   |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AddCalendarEventRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Event added to calendar.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/person-tags/apply": {
+            "post": {
+                "tags": ["Person Tags"],
+                "operationId": "applyPersonTag",
+                "summary": "Apply Person Tag",
+                "description": "Assigns an existing person tag to a specific person within a calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                                  |\n|-------------|--------|----------|----------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar where the tag is applied. |\n| tag_id      | string | Yes      | ID of the person tag to apply.               |\n| person_id   | string | Yes      | ID of the person to assign the tag to.       |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ApplyPersonTagRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tag applied to person.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/person-tags/remove": {
+            "post": {
+                "tags": ["Person Tags"],
+                "operationId": "removePersonTag",
+                "summary": "Remove Person Tag",
+                "description": "Removes an assigned person tag from a specific person within a calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                                    |\n|-------------|--------|----------|------------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar from which to remove tag.   |\n| tag_id      | string | Yes      | ID of the person tag to remove.                |\n| person_id   | string | Yes      | ID of the person from whom the tag is removed. |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RemovePersonTagRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tag removed from person.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/calendar/person-tags/unapply": {
+            "post": {
+                "tags": ["Person Tags"],
+                "operationId": "unapplyPersonTag",
+                "summary": "Unapply Person Tag",
+                "description": "Removes an assigned person tag from a specific person within a calendar.\n\nRequest Body\n\n| Name        | Type   | Required | Description                                    |\n|-------------|--------|----------|------------------------------------------------|\n| calendar_id | string | Yes      | ID of the calendar from which to remove tag.   |\n| tag_id      | string | Yes      | ID of the person tag to unapply.               |\n| person_id   | string | Yes      | ID of the person from whom the tag is removed. |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RemovePersonTagRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tag unapplied from person.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "409": {
+                        "$ref": "#/components/responses/Conflict"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/user/get-self": {
+            "get": {
+                "tags": ["Users"],
+                "operationId": "getSelf",
+                "summary": "Get Self",
+                "description": "Retrieves information about the currently authenticated user.",
+                "responses": {
+                    "200": {
+                        "description": "Authenticated user's profile details.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/user/lookup-entity": {
+            "get": {
+                "tags": ["Users"],
+                "operationId": "lookupUserEntity",
+                "summary": "Lookup Entity (User scope)",
+                "description": "Retrieves detailed information for a specified entity by its ID.\n\nParameters\n\n| Name | In    | Type   | Required | Description                   |\n|------|-------|--------|----------|-------------------------------|\n| id   | query | string | Yes      | ID of the entity to look up.  |",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/idQuery"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Entity retrieved.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Entity"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/user/create-upload-url": {
+            "post": {
+                "tags": ["Users"],
+                "operationId": "createUserUploadUrl",
+                "summary": "Create Upload URL (User)",
+                "description": "Generates a pre-signed URL for uploading a file directly to storage.\n\nRequest Body\n\n| Name       | Type   | Required | Description                      |\n|------------|--------|----------|----------------------------------|\n| file_name  | string | Yes      | Name of the file to be uploaded. |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateUserUploadUrlRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Upload URL created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UploadUrlResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/entity/lookup": {
+            "get": {
+                "tags": ["Entities"],
+                "operationId": "lookupEntityBySlug",
+                "summary": "Lookup Entity (by Slug)",
+                "description": "Retrieves detailed information for an entity based on its slug identifier.\n\nParameters\n\n| Name | In    | Type   | Required | Description                         |\n|------|-------|--------|----------|-------------------------------------|\n| slug | query | string | Yes      | Slug identifier of the entity.      |",
+                "parameters": [
+                    {
+                        "name": "slug",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Slug identifier of the entity to look up."
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Entity retrieved.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Entity"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/NotFound"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        },
+        "/v1/images/create-upload-url": {
+            "post": {
+                "tags": ["Images"],
+                "operationId": "createImageUploadUrl",
+                "summary": "Create Upload URL (Image)",
+                "description": "Generates a pre-signed URL for uploading an image to be used in the Luma system.\n\nRequest Body\n\n| Name         | Type           | Required | Description                                               |\n|--------------|----------------|----------|-----------------------------------------------------------|\n| purpose      | string         | Yes      | Intended use of the uploaded image (allowed: event-cover).|\n| content_type | string or null | No       | MIME type (e.g., image/jpeg). If null, server may infer.  |",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateImageUploadUrlRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Upload URL created.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UploadUrlResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/BadRequest"
+                    },
+                    "401": {
+                        "$ref": "#/components/responses/Unauthorized"
+                    },
+                    "429": {
+                        "$ref": "#/components/responses/TooManyRequests"
+                    },
+                    "500": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                },
+                "security": [
+                    {
+                        "LumaApiKey": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "LumaApiKey": {
+                "type": "apiKey",
+                "in": "header",
+                "name": "x-luma-api-key",
+                "description": "Authenticate by including your API key in the x-luma-api-key header."
+            }
+        },
+        "parameters": {
+            "idQuery": {
+                "name": "id",
+                "in": "query",
+                "required": true,
+                "schema": {
                     "type": "string"
-                  },
-                  "email": {
-                    "type": "string",
-                    "format": "email"
-                  }
+                },
+                "description": "Unique identifier."
+            },
+            "eventIdQuery": {
+                "name": "event_id",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                },
+                "description": "Event ID."
+            },
+            "calendarIdQuery": {
+                "name": "calendar_id",
+                "in": "query",
+                "required": true,
+                "schema": {
+                    "type": "string"
+                },
+                "description": "Calendar ID."
+            }
+        },
+        "responses": {
+            "BadRequest": {
+                "description": "Bad Request",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "Unauthorized": {
+                "description": "Unauthorized – missing or invalid x-luma-api-key",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "Resource not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "Conflict": {
+                "description": "Conflict (e.g., duplicate code)",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "TooManyRequests": {
+                "description": "Too Many Requests – rate limit exceeded (blocked for 1 minute)",
+                "headers": {
+                    "Retry-After": {
+                        "description": "Seconds until you may retry the request.",
+                        "schema": {
+                            "type": "integer",
+                            "format": "int32"
+                        }
+                    }
+                },
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "ServerError": {
+                "description": "Internal Server Error",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "schemas": {
+            "Event": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "evt_123"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Community Meetup"
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2023-05-01T10:00:00.000Z",
+                        "description": "ISO 8601 UTC timestamp."
+                    },
+                    "duration": {
+                        "type": "string",
+                        "example": "PT1H30M",
+                        "description": "ISO 8601 duration."
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Location identifier. Recommended: Google Maps Place ID."
+                    }
                 },
                 "additionalProperties": true
-              }
-            ]
-          }
+            },
+            "EventCreateRequest": {
+                "type": "object",
+                "description": "The complete schema is not provided. Typical fields include `name`, `start_time` (ISO 8601 UTC), `duration` (ISO 8601 duration), `location` (Google Place ID), etc.",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "ISO 8601 UTC."
+                    },
+                    "duration": {
+                        "type": "string",
+                        "description": "ISO 8601 duration."
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Google Maps Place ID recommended."
+                    }
+                },
+                "additionalProperties": true
+            },
+            "EventUpdateRequest": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "ISO 8601 UTC."
+                    },
+                    "duration": {
+                        "type": "string",
+                        "description": "ISO 8601 duration."
+                    },
+                    "location": {
+                        "type": "string",
+                        "description": "Google Maps Place ID recommended."
+                    }
+                },
+                "additionalProperties": true
+            },
+            "Guest": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "gst_321"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Jane Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "jane@example.com"
+                    },
+                    "status": {
+                        "type": "string",
+                        "example": "accepted"
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "example": "evt_123"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "GuestInput": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "AddGuestsRequest": {
+                "type": "object",
+                "required": ["event_id", "guests"],
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "guests": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GuestInput"
+                        },
+                        "minItems": 1
+                    }
+                }
+            },
+            "UpdateGuestStatusRequest": {
+                "type": "object",
+                "required": ["status"],
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "description": "New guest status (e.g., accepted, declined)."
+                    },
+                    "guest_id": {
+                        "type": "string",
+                        "description": "ID of the guest to update. Likely required; see full API reference."
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "description": "ID of the event (if required by your integration)."
+                    }
+                },
+                "additionalProperties": true
+            },
+            "SendInvitesRequest": {
+                "type": "object",
+                "required": ["event_id", "guest_ids"],
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "guest_ids": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "minItems": 1
+                    }
+                }
+            },
+            "TicketType": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "tt_456"
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "example": "evt_123"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "General Admission"
+                    },
+                    "price": {
+                        "type": "number",
+                        "example": 25.0
+                    },
+                    "type": {
+                        "type": "string",
+                        "example": "paid"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "TicketTypeCreateRequest": {
+                "type": "object",
+                "required": ["event_id", "name"],
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number",
+                        "description": "Required for paid tickets."
+                    },
+                    "type": {
+                        "type": "string",
+                        "description": "Ticket type (e.g., free, paid)."
+                    }
+                },
+                "additionalProperties": true
+            },
+            "TicketTypeUpdateRequest": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "price": {
+                        "type": "number"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "DeleteByIdRequest": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Coupon": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "coup_789"
+                    },
+                    "code": {
+                        "type": "string",
+                        "example": "SUMMER10"
+                    },
+                    "discount_amount": {
+                        "type": "number",
+                        "example": 10.0
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "event_id": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "calendar_id": {
+                        "type": "string",
+                        "nullable": true
+                    }
+                },
+                "additionalProperties": true
+            },
+            "CreateEventCouponRequest": {
+                "type": "object",
+                "required": ["event_id", "code", "discount_amount"],
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "discount_amount": {
+                        "type": "number"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "UpdateEventCouponRequest": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "discount_amount": {
+                        "type": "number"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "CreateCalendarCouponRequest": {
+                "type": "object",
+                "required": ["calendar_id", "code", "discount_amount"],
+                "properties": {
+                    "calendar_id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "discount_amount": {
+                        "type": "number"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "UpdateCalendarCouponRequest": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    },
+                    "discount_amount": {
+                        "type": "number"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                }
+            },
+            "Person": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "usr_789"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "John Doe"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "example": "john.doe@example.com"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PersonTag"
+                        }
+                    }
+                },
+                "additionalProperties": true
+            },
+            "PersonInput": {
+                "type": "object",
+                "required": ["name", "email"],
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "ImportPeopleRequest": {
+                "type": "object",
+                "required": ["calendar_id", "people"],
+                "properties": {
+                    "calendar_id": {
+                        "type": "string"
+                    },
+                    "people": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PersonInput"
+                        },
+                        "minItems": 1
+                    }
+                }
+            },
+            "PersonTag": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "example": "pt_987"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "VIP"
+                    },
+                    "calendar_id": {
+                        "type": "string",
+                        "example": "cal_123"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "CreatePersonTagRequest": {
+                "type": "object",
+                "required": ["calendar_id", "name"],
+                "properties": {
+                    "calendar_id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "UpdatePersonTagRequest": {
+                "type": "object",
+                "required": ["id", "name"],
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                }
+            },
+            "ApplyPersonTagRequest": {
+                "type": "object",
+                "required": ["calendar_id", "tag_id", "person_id"],
+                "properties": {
+                    "calendar_id": {
+                        "type": "string"
+                    },
+                    "tag_id": {
+                        "type": "string"
+                    },
+                    "person_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RemovePersonTagRequest": {
+                "type": "object",
+                "required": ["calendar_id", "tag_id", "person_id"],
+                "properties": {
+                    "calendar_id": {
+                        "type": "string"
+                    },
+                    "tag_id": {
+                        "type": "string"
+                    },
+                    "person_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "AddCalendarEventRequest": {
+                "type": "object",
+                "required": ["calendar_id", "event_id"],
+                "properties": {
+                    "calendar_id": {
+                        "type": "string"
+                    },
+                    "event_id": {
+                        "type": "string"
+                    }
+                }
+            },
+            "AddHostRequest": {
+                "type": "object",
+                "required": ["event_id", "host"],
+                "properties": {
+                    "event_id": {
+                        "type": "string"
+                    },
+                    "host": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "required": ["id"],
+                                "properties": {
+                                    "id": {
+                                        "type": "string",
+                                        "description": "Existing host ID."
+                                    }
+                                }
+                            },
+                            {
+                                "type": "object",
+                                "required": ["name", "email"],
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    }
+                                },
+                                "additionalProperties": true
+                            }
+                        ]
+                    }
+                }
+            },
+            "Entity": {
+                "type": "object",
+                "description": "Generic entity object.",
+                "additionalProperties": true
+            },
+            "CreateUserUploadUrlRequest": {
+                "type": "object",
+                "required": ["file_name"],
+                "properties": {
+                    "file_name": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": true
+            },
+            "CreateImageUploadUrlRequest": {
+                "type": "object",
+                "required": ["purpose"],
+                "properties": {
+                    "purpose": {
+                        "type": "string",
+                        "enum": ["event-cover"]
+                    },
+                    "content_type": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "MIME type (e.g., image/jpeg). If null, server may infer."
+                    }
+                },
+                "additionalProperties": true
+            },
+            "UploadUrlResponse": {
+                "type": "object",
+                "properties": {
+                    "upload_url": {
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "headers": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "Any additional headers required for the upload request."
+                    }
+                },
+                "additionalProperties": true
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "code": {
+                        "type": "string"
+                    }
+                },
+                "additionalProperties": true
+            }
         }
-      },
-      "Entity": {
-        "type": "object",
-        "description": "Generic entity object.",
-        "additionalProperties": true
-      },
-      "CreateUserUploadUrlRequest": {
-        "type": "object",
-        "required": [
-          "file_name"
-        ],
-        "properties": {
-          "file_name": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": true
-      },
-      "CreateImageUploadUrlRequest": {
-        "type": "object",
-        "required": [
-          "purpose"
-        ],
-        "properties": {
-          "purpose": {
-            "type": "string",
-            "enum": [
-              "event-cover"
-            ]
-          },
-          "content_type": {
-            "type": "string",
-            "nullable": true,
-            "description": "MIME type (e.g., image/jpeg). If null, server may infer."
-          }
-        },
-        "additionalProperties": true
-      },
-      "UploadUrlResponse": {
-        "type": "object",
-        "properties": {
-          "upload_url": {
-            "type": "string",
-            "format": "uri"
-          },
-          "headers": {
-            "type": "object",
-            "additionalProperties": true,
-            "description": "Any additional headers required for the upload request."
-          }
-        },
-        "additionalProperties": true
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string"
-          },
-          "message": {
-            "type": "string"
-          },
-          "code": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": true
-      }
+    },
+    "security": [
+        {
+            "LumaApiKey": []
+        }
+    ],
+    "externalDocs": {
+        "description": "Demo Basketball Club example project",
+        "url": "https://github.com/luma-team/basketball-club-example"
     }
-  },
-  "security": [
-    {
-      "LumaApiKey": []
-    }
-  ],
-  "externalDocs": {
-    "description": "Demo Basketball Club example project",
-    "url": "https://github.com/luma-team/basketball-club-example"
-  }
 }

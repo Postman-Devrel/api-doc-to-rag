@@ -4,17 +4,17 @@
 
 async function handleBrowserAction(page, action) {
     const actionType = action.type;
-  
+
     try {
         switch (actionType) {
-            case "click": {
-                const { x, y, button = "left" } = action;
+            case 'click': {
+                const { x, y, button = 'left' } = action;
                 console.log(`Action: click at (${x}, ${y}) with button '${button}'`);
                 await page.mouse.click(x, y, { button });
                 break;
             }
-    
-            case "scroll": {
+
+            case 'scroll': {
                 const { x, y, scroll_x, scroll_y } = action;
                 console.log(
                     `Action: scroll at (${x}, ${y}) with offsets (scrollX=${scroll_x}, scrollY=${scroll_y})`
@@ -25,13 +25,13 @@ async function handleBrowserAction(page, action) {
                 page.mouse.wheel(scroll_x, scroll_y);
                 break;
             }
-    
-            case "keypress": {
+
+            case 'keypress': {
                 let { keys } = action;
 
-                keys = keys.reduce((a, b) => a + "+" + b, "");
+                keys = keys.reduce((a, b) => a + '+' + b, '');
                 await page.keyboard.press(keys);
-                
+
                 // for (const k of keys) {
                 //     console.log(`Action: keypress '${k}'`);
                 //     // A simple mapping for common keys; expand as needed.
@@ -45,21 +45,21 @@ async function handleBrowserAction(page, action) {
                 // }
                 break;
             }
-    
-            case "type": {
+
+            case 'type': {
                 const { text } = action;
                 console.log(`Action: type text '${text}'`);
                 await page.keyboard.type(text);
                 break;
             }
-    
-            case "wait": {
+
+            case 'wait': {
                 console.log(`Action: wait`);
                 await page.waitForTimeout(2000);
                 break;
             }
-    
-            case "screenshot": {
+
+            case 'screenshot': {
                 // Nothing to do as screenshot is taken at each turn
                 console.log(`Action: screenshot`);
                 break;
@@ -67,9 +67,11 @@ async function handleBrowserAction(page, action) {
 
             //{ type: 'drag', path: [ { x: 1017, y: 642 }, { x: 1019, y: 765 } ] }
 
-            case "drag": {
+            case 'drag': {
                 const { path } = action;
-                console.log(`Action: drag at (${path[0].x}, ${path[0].y}) to (${path[1].x}, ${path[1].y})`);
+                console.log(
+                    `Action: drag at (${path[0].x}, ${path[0].y}) to (${path[1].x}, ${path[1].y})`
+                );
                 await page.mouse.move(path[0].x, path[0].y);
                 await page.mouse.down();
 
@@ -77,19 +79,19 @@ async function handleBrowserAction(page, action) {
                     const point = path[i];
                     await page.mouse.move(point.x, point.y, { steps: 10 }); // steps = smoothness
                 }
-                  
+
                 await page.mouse.up();
 
                 break;
             }
-    
+
             // Handle other actions here
-    
+
             default:
-                console.log("Unrecognized action:", action);
+                console.log('Unrecognized action:', action);
         }
     } catch (e) {
-        console.error("Error handling action", action, ":", e);
+        console.error('Error handling action', action, ':', e);
     }
 }
 

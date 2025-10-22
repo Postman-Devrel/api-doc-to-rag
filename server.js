@@ -11,14 +11,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Server is running' });
+    res.json({ status: 'ok', message: 'Server is running' });
 });
 
-const isValidUrl = (urlString) => {
-    const pattern = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+const isValidUrl = urlString => {
+    const pattern =
+        /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
     return pattern.test(urlString);
 };
-
 
 // use agent to generate knowledge base from a documentation URL
 app.post('/knowledge-base', async (req, res) => {
@@ -26,16 +26,16 @@ app.post('/knowledge-base', async (req, res) => {
         const { url } = req.body;
 
         if (!url) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'URL is required',
-                message: 'Please provide a url in the request body' 
+                message: 'Please provide a url in the request body',
             });
         }
 
         if (!isValidUrl(url)) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Invalid URL format',
-                message: 'Please provide a valid URL' 
+                message: 'Please provide a valid URL',
             });
         }
 
@@ -56,49 +56,46 @@ app.post('/knowledge-base', async (req, res) => {
             data: {
                 url,
                 descriptions: curlDocs,
-            }
+            },
         });
-
     } catch (error) {
         console.error('Error generating knowledge base:', error);
         res.status(500).json({
             error: 'Failed to generate knowledge base',
-            message: error.message
+            message: error.message,
         });
     }
 });
 
 // search the knowledge base for relevant content
 app.get('/documentation/search', async (req, res) => {
-  try {
-    const { query, url } = req.query;
+    try {
+        const { query, url } = req.query;
 
-    if (!query) {
-        return res.status(400).json({
-            error: 'Query parameter is required',
-            message: 'Please provide a query parameter (e.g., ?query=your search)'
+        if (!query) {
+            return res.status(400).json({
+                error: 'Query parameter is required',
+                message: 'Please provide a query parameter (e.g., ?query=your search)',
+            });
+        }
+
+        console.log(`Searching for: ${query}${url ? ` in ${url}` : ''}`);
+
+        // Perform semantic search, optionally filtered by URL
+        const results = await findRelevantContent(query, url);
+
+        res.json({
+            success: true,
+            data: { query, url, results },
         });
-    }
-
-    console.log(`Searching for: ${query}${url ? ` in ${url}` : ''}`);
-
-    // Perform semantic search, optionally filtered by URL
-    const results = await findRelevantContent(query, url);
-
-    res.json({
-        success: true,
-        data: { query, url, results }
-    });
-
-  } catch (error) {
+    } catch (error) {
         console.error('Error searching documentation:', error);
         res.status(500).json({
             error: 'Failed to search documentation',
-            message: error.message
+            message: error.message,
         });
     }
 });
-
 
 // Generate OpenAPI definition from the knowledge base
 app.get('/documentation/openapi', async (req, res) => {
@@ -108,7 +105,7 @@ app.get('/documentation/openapi', async (req, res) => {
         if (!url) {
             return res.status(400).json({
                 error: 'URL parameter is required',
-                message: 'Please provide a url parameter (e.g., ?url=https://example.com)'
+                message: 'Please provide a url parameter (e.g., ?url=https://example.com)',
             });
         }
 
@@ -127,18 +124,17 @@ app.get('/documentation/openapi', async (req, res) => {
             message: 'OpenAPI definition generated successfully',
             data: {
                 url,
-                openApi
-            }
+                openApi,
+            },
         });
     } catch (error) {
         console.error('Error generating OpenAPI definition:', error);
         res.status(500).json({
             error: 'Failed to generate OpenAPI definition',
-            message: error.message
+            message: error.message,
         });
     }
 });
-
 
 // Start server
 app.listen(PORT, () => {
@@ -146,4 +142,3 @@ app.listen(PORT, () => {
 });
 
 export default app;
-

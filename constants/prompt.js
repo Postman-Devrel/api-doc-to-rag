@@ -15,27 +15,91 @@ const PLAYWRIGHT_KEYS = [
     'ControlRight',
     'MetaLeft',
     'MetaRight',
-  
+
     // Printable / letters digits
-    'KeyA', 'KeyB', 'KeyC', 'KeyD', 'KeyE', 'KeyF', 'KeyG',
-    'KeyH', 'KeyI', 'KeyJ', 'KeyK', 'KeyL', 'KeyM',
-    'KeyN', 'KeyO', 'KeyP', 'KeyQ', 'KeyR', 'KeyS',
-    'KeyT', 'KeyU', 'KeyV', 'KeyW', 'KeyX', 'KeyY', 'KeyZ',
-  
-    'Digit0', 'Digit1', 'Digit2', 'Digit3', 'Digit4',
-    'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9',
-  
+    'KeyA',
+    'KeyB',
+    'KeyC',
+    'KeyD',
+    'KeyE',
+    'KeyF',
+    'KeyG',
+    'KeyH',
+    'KeyI',
+    'KeyJ',
+    'KeyK',
+    'KeyL',
+    'KeyM',
+    'KeyN',
+    'KeyO',
+    'KeyP',
+    'KeyQ',
+    'KeyR',
+    'KeyS',
+    'KeyT',
+    'KeyU',
+    'KeyV',
+    'KeyW',
+    'KeyX',
+    'KeyY',
+    'KeyZ',
+
+    'Digit0',
+    'Digit1',
+    'Digit2',
+    'Digit3',
+    'Digit4',
+    'Digit5',
+    'Digit6',
+    'Digit7',
+    'Digit8',
+    'Digit9',
+
     // Numpad
-    'Numpad0', 'Numpad1', 'Numpad2', 'Numpad3', 'Numpad4',
-    'Numpad5', 'Numpad6', 'Numpad7', 'Numpad8', 'Numpad9',
-    'NumpadAdd', 'NumpadSubtract', 'NumpadMultiply', 'NumpadDivide',
-    'NumpadDecimal', 'NumpadEnter', 'NumpadEqual',
-  
+    'Numpad0',
+    'Numpad1',
+    'Numpad2',
+    'Numpad3',
+    'Numpad4',
+    'Numpad5',
+    'Numpad6',
+    'Numpad7',
+    'Numpad8',
+    'Numpad9',
+    'NumpadAdd',
+    'NumpadSubtract',
+    'NumpadMultiply',
+    'NumpadDivide',
+    'NumpadDecimal',
+    'NumpadEnter',
+    'NumpadEqual',
+
     // Function keys
-    'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9',
-    'F10', 'F11', 'F12', 'F13', 'F14', 'F15', 'F16',
-    'F17', 'F18', 'F19', 'F20', 'F21', 'F22', 'F23', 'F24',
-  
+    'F1',
+    'F2',
+    'F3',
+    'F4',
+    'F5',
+    'F6',
+    'F7',
+    'F8',
+    'F9',
+    'F10',
+    'F11',
+    'F12',
+    'F13',
+    'F14',
+    'F15',
+    'F16',
+    'F17',
+    'F18',
+    'F19',
+    'F20',
+    'F21',
+    'F22',
+    'F23',
+    'F24',
+
     // Navigation / editing
     'Backspace',
     'Delete',
@@ -51,27 +115,27 @@ const PLAYWRIGHT_KEYS = [
     'PageUp',
     'PageDown',
     'Insert',
-  
+
     // Symbol / punctuation / other keys
     'Backquote', // ` and ~
-    'Minus',     // - and _
-    'Equal',     // = and +
-    'BracketLeft',  // [ and {
+    'Minus', // - and _
+    'Equal', // = and +
+    'BracketLeft', // [ and {
     'BracketRight', // ] and }
-    'Backslash',     // \ and |
-    'Semicolon',     // ; and :
-    'Quote',         // ' and "
-    'Comma',         // , and <
-    'Period',        // . and >
-    'Slash',         // / and ?
-  
+    'Backslash', // \ and |
+    'Semicolon', // ; and :
+    'Quote', // ' and "
+    'Comma', // , and <
+    'Period', // . and >
+    'Slash', // / and ?
+
     'Space',
     'CapsLock',
     'ScrollLock',
     'NumLock',
     'Pause',
     'PrintScreen',
-    'ContextMenu'
+    'ContextMenu',
 ];
 
 const prompts = {
@@ -99,7 +163,7 @@ const prompts = {
         - If documentation is not complete on the page or website, never navigate to a new domain or web page.
         - The framework being used is Playwright. Make the parameters object of the computer use tool based on the Playwright framework.
     `,
-    
+
     curl_docs_prompt: `
         Developer: You are an expert in API documentation review. Your goal is to efficiently examine the provided API documentation page (including all connected/relevant pages) and extract detailed endpoint information.
 
@@ -149,7 +213,7 @@ const prompts = {
         4. Organize extracted data into a structured OpenAPI definition.
         5. Format all request descriptions and parameter tables using Markdown.
         6. Include all the provided information in the OpenAPI definition.
-    `
-}
+    `,
+};
 
 export default prompts;
