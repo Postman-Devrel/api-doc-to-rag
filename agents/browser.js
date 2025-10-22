@@ -2,6 +2,8 @@ import { openAIRequest } from '../services/openai.js';
 import { startBrowser, handleBrowserAction } from '../browser/index.js';
 import prompts from '../constants/prompt.js';
 import curlDocsGenerator from './curl.js';
+import { createResource } from '../actions/resources.js';
+
 import { config } from 'dotenv';
 config();
 
@@ -120,10 +122,30 @@ async function computerUseLoop(pageInstance, response) {
         console.log("OUTPUT TEXT IS: ", output_text);
 
         // generate the curl docs
-        const { responseId, curlDocs } = await curlDocsGenerator(screenshotUrl, curlDocsResponseId);
+        const { responseId, curlObj } = await curlDocsGenerator(screenshotUrl, curlDocsResponseId);
         curlDocsResponseId = responseId;
-        curlDocsList.push(curlDocs);
-        console.log("CURL DOCS IS: ", curlDocs);
+
+        const { curlDocs, url } = curlObj;
+
+        // Store the curl docs in the vector database and processing each curl doc individually for better semantic search
+        for (const doc of curlDocs) {
+            // Extract meaningful text content
+            const contentParts = [
+                `Tags: ${doc.tags}`,
+                `Description: ${doc.description}`,
+                `Curl Command: ${doc.curl}`,
+                `Parameters: ${doc.parameters.map(p => 
+                    `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
+                ).join('; ')}`
+            ];
+            
+            const content = contentParts.filter(Boolean).join('\n\n');
+            const resource = await createResource({ content, url });
+            console.log("Embeddings created! ");
+        }
+
+        curlDocsList.push(curlObj);
+        console.log("CURL DOCS IS: ", curlObj);
     }
 
     console.log("CURL DOCS LIST IS: ", curlDocsList);

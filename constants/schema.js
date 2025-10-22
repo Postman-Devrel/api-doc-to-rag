@@ -5,7 +5,7 @@ const schemas = {
         schema: {
             type: "object",
             properties: {
-                curl_docs: {
+                curlDocs: {
                     type: "array",
                     description: "An array of curl documentation objects extracted from the API documentation page.",
                     items: {
@@ -43,9 +43,13 @@ const schemas = {
                         additionalProperties: false
                     },
                     minItems: 1
+                },
+                url: {
+                    type: "string",
+                    description: "The URL of the documentation page that the curl documentation was extracted from.",
                 }
             },
-            required: ["curl_docs"],
+            required: ["curlDocs", "url"],
             additionalProperties: false,
         }
     }

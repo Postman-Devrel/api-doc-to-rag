@@ -5,6 +5,8 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "db:setup": "node db/setup-vector.js",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node db/migrate.js",

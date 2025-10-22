@@ -26,7 +26,7 @@ async function curlDocsGenerator(screenshot, previousResponseId) {
 
     return {
         responseId: curlDocsResponse.id,
-        curlDocs: JSON.parse(output_text)
+        curlObj: JSON.parse(output_text)
     };
 }
 

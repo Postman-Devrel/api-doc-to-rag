@@ -95,6 +95,8 @@ const prompts = {
         - Identify all API requests/actions, including authorization/authentication processes and HTTP verbs (GET, POST, PUT, DELETE, etc.).
         - If curl commands are included in the docs, view them. If the default are code snippets and there is an option to switch to curl, switch to curl.
         - If the docs allow switching code samples to curl, use that option.
+        - Do not doom scrolling, scroll only as much as needed to view the page. Never scroll back up when you've already scrolled down to see the page content. 
+        - If documentation is not complete on the page or website, never navigate to a new domain or web page.
         - The framework being used is Playwright. Make the parameters object of the computer use tool based on the Playwright framework.
     `,
     
