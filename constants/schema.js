@@ -63,7 +63,7 @@ const schemas = {
                 url: {
                     type: 'string',
                     description:
-                        'The URL of the documentation page that the curl documentation was extracted from.',
+                        'The URL of the current documentation page that the curl documentation was extracted from.',
                 },
             },
             required: ['curlDocs', 'url'],

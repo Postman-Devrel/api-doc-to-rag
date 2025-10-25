@@ -1,7 +1,8 @@
 import express from 'express';
 import { config } from 'dotenv';
 import { browserAgent } from './agents/browser.js';
-import { findRelevantContent } from './utils/embeddings.js';
+import { findRelevantContent } from './actions/search.js';
+import { generateOpenApiFromUrl } from './actions/openapi.js';
 
 config();
 
@@ -109,28 +110,29 @@ app.get('/documentation/openapi', async (req, res) => {
             });
         }
 
-        // Get documentation using the browserAgent (same process as index.js)
-        const { curlDocs, page, browser } = await browserAgent(url);
+        console.log(`Generating OpenAPI definition for: ${url}`);
 
-        // Close browser resources
-        await page.close();
-        await browser.close();
-
-        // Generate OpenAPI documentation from the crawled docs
-        const openApi = await openApiGenerator(curlDocs);
+        const { openApi, resourceCount } = await generateOpenApiFromUrl(url);
 
         res.json({
             success: true,
             message: 'OpenAPI definition generated successfully',
             data: {
-                url,
+                resourceCount,
                 openApi,
             },
         });
     } catch (error) {
         console.error('Error generating OpenAPI definition:', error);
-        res.status(500).json({
-            error: 'Failed to generate OpenAPI definition',
+        // Check if it's a "not found" error
+        const statusCode =
+            error.message.includes('No resources found') ||
+            error.message.includes('No documentation resources found')
+                ? 404
+                : 500;
+
+        res.status(statusCode).json({
+            error: statusCode === 404 ? 'Not found' : 'Failed to generate OpenAPI definition',
             message: error.message,
         });
     }
