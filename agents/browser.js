@@ -49,13 +49,13 @@ const browserAgent = async url => {
     console.log('OUTPUT IS: ', output);
     console.log('OUTPUT TEXT IS: ', output_text);
 
-    const curlDocs = await computerUseLoop(page, response);
+    const curlDocs = await computerUseLoop(page, response, url);
     console.log('FINAL RESPONSE IS: ', curlDocs);
 
     return { browser, page, curlDocs };
 };
 
-async function computerUseLoop(pageInstance, response) {
+async function computerUseLoop(pageInstance, response, url) {
     /**
      * Run the loop that executes computer actions until no 'computer_call' is found.
      */
@@ -128,7 +128,7 @@ async function computerUseLoop(pageInstance, response) {
         const { responseId, curlObj } = await curlDocsGenerator(screenshotUrl, curlDocsResponseId);
         curlDocsResponseId = responseId;
 
-        const { curlDocs, url } = curlObj;
+        const { curlDocs } = curlObj;
 
         // Store the curl docs in the vector database and processing each curl doc individually for better semantic search
         for (const doc of curlDocs) {
@@ -148,6 +148,7 @@ async function computerUseLoop(pageInstance, response) {
             const content = contentParts.filter(Boolean).join('\n\n');
             const resource = await createResource({ content, url });
             console.log('Embeddings created! ');
+            console.log('URL Isssss => ', url);
         }
 
         curlDocsList.push(curlObj);

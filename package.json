@@ -19,9 +19,12 @@
         "db:check": "drizzle-kit check"
     },
     "dependencies": {
+        "@ai-sdk/anthropic": "^2.0.37",
         "@ai-sdk/openai": "^2.0.53",
         "@modelcontextprotocol/sdk": "^1.20.1",
-        "ai": "^5.0.76",
+        "add": "^2.0.6",
+        "ai": "^5.0.78",
+        "curl-to-postmanv2": "^1.8.3",
         "dotenv": "^17.2.3",
         "drizzle-orm": "^0.31.2",
         "drizzle-zod": "^0.5.1",
