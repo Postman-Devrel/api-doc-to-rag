@@ -10,12 +10,14 @@ const configuration = {
 const openai = new OpenAI(configuration);
 
 /**
- * @param {string} model
- * @param {Array<object>} tools
- * @param {Array<object>} input
- * @param {object} schema
- * @param {object} reasoning
- * @returns {object} response
+ * Makes a request to OpenAI's responses API
+ * @param {string} model - The model identifier to use
+ * @param {Array<object>} tools - Array of tool definitions
+ * @param {Array<{role: string, content: string}>} input - Array of input messages
+ * @param {object|null} schema - Optional schema for structured output with name, type, and schema properties
+ * @param {object} [reasoning={ summary: 'concise' }] - Reasoning configuration object
+ * @param {string|null} [previous_response_id=null] - Optional ID of previous response for continuation
+ * @returns {Promise<object>} The OpenAI API response object
  */
 
 const openAIRequest = async (

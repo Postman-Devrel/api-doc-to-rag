@@ -3,6 +3,7 @@ import { config } from 'dotenv';
 import { browserAgent } from './agents/browser.js';
 import { findRelevantContent } from './actions/search.js';
 import { generateOpenApiFromUrl } from './actions/openapi.js';
+import { isValidUrl } from './utils/utils.js';
 
 config();
 
@@ -14,12 +15,6 @@ app.use(express.json());
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
-
-const isValidUrl = urlString => {
-    const pattern =
-        /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
-    return pattern.test(urlString);
-};
 
 // use agent to generate knowledge base from a documentation URL
 app.post('/knowledge-base', async (req, res) => {
@@ -52,17 +47,12 @@ app.post('/knowledge-base', async (req, res) => {
         console.log('Browser closed');
 
         res.json({
-            success: true,
-            message: 'Knowledge base generated successfully',
-            data: {
-                url,
-                descriptions: curlDocs,
-            },
+            url,
+            data: curlDocs,
         });
     } catch (error) {
-        console.error('Error generating knowledge base:', error);
         res.status(500).json({
-            error: 'Failed to generate knowledge base',
+            error: 'An error occurred while generating the knowledge base',
             message: error.message,
         });
     }
@@ -82,15 +72,15 @@ app.get('/documentation/search', async (req, res) => {
 
         console.log(`Searching for: ${query}${url ? ` in ${url}` : ''}`);
 
-        // Perform semantic search, optionally filtered by URL
+        // Do a similarity search to find relevant content
         const results = await findRelevantContent(query, url);
 
         res.json({
-            success: true,
-            data: { query, url, results },
+            query,
+            url,
+            results,
         });
     } catch (error) {
-        console.error('Error searching documentation:', error);
         res.status(500).json({
             error: 'Failed to search documentation',
             message: error.message,
@@ -105,8 +95,15 @@ app.get('/documentation/openapi', async (req, res) => {
 
         if (!url) {
             return res.status(400).json({
-                error: 'URL parameter is required',
-                message: 'Please provide a url parameter (e.g., ?url=https://example.com)',
+                error: 'URL is required',
+                message: 'Please provide a url in the request body',
+            });
+        }
+
+        if (!isValidUrl(url)) {
+            return res.status(400).json({
+                error: 'Invalid URL format',
+                message: 'Please provide a valid URL',
             });
         }
 
@@ -115,24 +112,14 @@ app.get('/documentation/openapi', async (req, res) => {
         const { openApi, resourceCount } = await generateOpenApiFromUrl(url);
 
         res.json({
-            success: true,
-            message: 'OpenAPI definition generated successfully',
-            data: {
-                resourceCount,
-                openApi,
-            },
+            resourceCount,
+            openApi,
         });
     } catch (error) {
         console.error('Error generating OpenAPI definition:', error);
-        // Check if it's a "not found" error
-        const statusCode =
-            error.message.includes('No resources found') ||
-            error.message.includes('No documentation resources found')
-                ? 404
-                : 500;
 
-        res.status(statusCode).json({
-            error: statusCode === 404 ? 'Not found' : 'Failed to generate OpenAPI definition',
+        res.status(500).json({
+            error: 'Failed to generate OpenAPI definition',
             message: error.message,
         });
     }

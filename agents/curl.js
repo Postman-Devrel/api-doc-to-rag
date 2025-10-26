@@ -5,8 +5,6 @@ import { openAIRequest } from '../services/openai.js';
 async function curlDocsGenerator(screenshot, previousResponseId) {
     const query = prompts.curl_docs_prompt;
 
-    console.log('Screenshot is: ', screenshot.substring(0, 100));
-
     const context = [
         {
             role: 'user',
@@ -16,7 +14,7 @@ async function curlDocsGenerator(screenshot, previousResponseId) {
             ],
         },
     ];
-    console.log('GENERATING CURL DOCS......');
+    console.log('GENERATING CURL DOCS FROM SCREENSHOT');
 
     const curlDocsResponse = await openAIRequest(
         'o4-mini',
@@ -28,8 +26,7 @@ async function curlDocsGenerator(screenshot, previousResponseId) {
     );
     const { output, output_text } = curlDocsResponse;
 
-    console.log('CURL DOCS RESPONSE IS: ', output_text);
-    console.log('CURL DOCS OUTPUT is: ', output);
+    console.log('GENERATED CURL DOCS IS: ', output_text);
 
     return {
         responseId: curlDocsResponse.id,

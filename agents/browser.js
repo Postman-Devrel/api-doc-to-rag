@@ -14,14 +14,12 @@ const browserAgent = async url => {
     // get the initial screenshot of the page;
     let initialPageScreenshot = (await page.screenshot()).toString('base64');
 
-    console.log('INITIAL PAGE SCREENSHOT IS: ', initialPageScreenshot.substring(0, 100));
-
-    // define the tools that the agent can use;
+    // define the computer use tool;
     const tools = [
         {
             type: 'computer_use_preview',
-            display_width: 1024,
-            display_height: 768,
+            display_width: parseInt(process.env.DISPLAY_WIDTH),
+            display_height: parseInt(process.env.DISPLAY_HEIGHT),
             environment: 'browser', // other possible values: "mac", "windows", "ubuntu"
         },
     ];
@@ -45,12 +43,9 @@ const browserAgent = async url => {
 
     // make the first request to the agent to get the initial action;
     const response = await openAIRequest('computer-use-preview', tools, input);
-    const { output, output_text } = response;
-    console.log('OUTPUT IS: ', output);
-    console.log('OUTPUT TEXT IS: ', output_text);
+    // const { output, output_text } = response;
 
     const curlDocs = await computerUseLoop(page, response, url);
-    console.log('FINAL RESPONSE IS: ', curlDocs);
 
     return { browser, page, curlDocs };
 };
@@ -71,9 +66,9 @@ async function computerUseLoop(pageInstance, response, url) {
         }
 
         if (computerCalls.length === 0) {
-            console.log('No computer call found. Output from model:');
+            console.log('No computer call found. Done persuing web page.');
             response.output.forEach(item => {
-                console.log('ITEM IS: ', JSON.stringify(item, null, 2));
+                console.log('RESPONSE ITEM IS: ', JSON.stringify(item, null, 2));
             });
             break; // Exit when no computer calls are issued.
         }
@@ -81,8 +76,9 @@ async function computerUseLoop(pageInstance, response, url) {
         // We expect at most one computer call per response.
         const computerCall = computerCalls[0];
         const lastCallId = computerCall.call_id;
-        console.log('LAST CALL ID IS: ', lastCallId);
+
         const action = computerCall.action;
+        console.log('ACTION IS: ', action);
 
         // Execute the action in the browser
         handleBrowserAction(pageInstance, action);
@@ -96,8 +92,8 @@ async function computerUseLoop(pageInstance, response, url) {
         const tools = [
             {
                 type: 'computer_use_preview',
-                display_width: 1024,
-                display_height: 768,
+                display_width: parseInt(process.env.DISPLAY_WIDTH),
+                display_height: parseInt(process.env.DISPLAY_HEIGHT),
                 environment: 'browser',
             },
         ];
@@ -120,9 +116,7 @@ async function computerUseLoop(pageInstance, response, url) {
             { summary: 'concise' },
             response.id
         );
-        const { output, output_text } = response;
-        console.log('OUTPUT IS: ', output);
-        console.log('OUTPUT TEXT IS: ', output_text);
+        // const { output, output_text } = response;
 
         // generate the curl docs
         const { responseId, curlObj } = await curlDocsGenerator(screenshotUrl, curlDocsResponseId);
@@ -130,7 +124,7 @@ async function computerUseLoop(pageInstance, response, url) {
 
         const { curlDocs } = curlObj;
 
-        // Store the curl docs in the vector database and processing each curl doc individually for better semantic search
+        // Store the curl docs in the vector database and process each curl doc individually for better semantic search
         for (const doc of curlDocs) {
             // Extract meaningful text content
             const contentParts = [
@@ -146,16 +140,14 @@ async function computerUseLoop(pageInstance, response, url) {
             ];
 
             const content = contentParts.filter(Boolean).join('\n\n');
-            const resource = await createResource({ content, url });
-            console.log('Embeddings created! ');
-            console.log('URL Isssss => ', url);
+
+            // Store in the resources table and create embeddings
+            await createResource({ content, url });
+            console.log('Resource created and embedded!');
         }
 
         curlDocsList.push(curlObj);
-        console.log('CURL DOCS IS: ', curlObj);
     }
-
-    console.log('CURL DOCS LIST IS: ', curlDocsList);
 
     return curlDocsList;
 }

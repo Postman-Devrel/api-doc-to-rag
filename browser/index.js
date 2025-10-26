@@ -5,14 +5,16 @@ import handleBrowserAction from './action.js';
 const startBrowser = async url => {
     let browser = await browserObject();
     const page = await browser.newPage();
-    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.setViewportSize({
+        width: parseInt(process.env.DISPLAY_WIDTH),
+        height: parseInt(process.env.DISPLAY_HEIGHT),
+    });
     if (url) {
         await page.goto(url);
 
         // Make sure the page is done loading
         await page.waitForLoadState('networkidle');
         await page.waitForTimeout(1000);
-        console.log('Navigation ended');
     }
 
     return {
