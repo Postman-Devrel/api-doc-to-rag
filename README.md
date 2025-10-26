@@ -54,8 +54,6 @@ yarn install
 
 Create a `.env` file in the root director. See `.env.examples` for examples.
 
-````
-
 ### 4. Set Up Database
 
 ```bash
@@ -68,7 +66,7 @@ yarn db:setup
 
 # Run migrations
 yarn db:migrate
-````
+```
 
 ### 5. Start the Server
 
