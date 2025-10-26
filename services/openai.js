@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 import { config } from 'dotenv';
+import { ExternalAPIError } from '../utils/errors.js';
+import { logger } from '../utils/logger.js';
 config();
 
 const configuration = {
@@ -28,25 +30,34 @@ const openAIRequest = async (
     reasoning = { summary: 'concise' },
     previous_response_id = null
 ) => {
-    const response = await openai.responses.create({
-        model,
-        tools,
-        input,
-        reasoning,
-        previous_response_id,
-        text: schema
-            ? {
-                  format: {
-                      name: schema.name,
-                      type: schema.type,
-                      schema: schema.schema,
-                  },
-              }
-            : {},
-        truncation: 'auto',
-    });
+    try {
+        const response = await openai.responses.create({
+            model,
+            tools,
+            input,
+            reasoning,
+            previous_response_id,
+            text: schema
+                ? {
+                      format: {
+                          name: schema.name,
+                          type: schema.type,
+                          schema: schema.schema,
+                      },
+                  }
+                : {},
+            truncation: 'auto',
+        });
 
-    return response;
+        return response;
+    } catch (error) {
+        logger.error('OpenAI API request failed', {
+            model,
+            error: error.message,
+            status: error.status,
+        });
+        throw new ExternalAPIError('OpenAI', error.message, error);
+    }
 };
 
 export { openAIRequest };

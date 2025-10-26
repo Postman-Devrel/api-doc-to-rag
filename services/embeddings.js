@@ -1,5 +1,7 @@
 import { embed, embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
+import { EmbeddingError } from '../utils/errors.js';
+import { logger } from '../utils/logger.js';
 
 const embeddingModel = openai.embedding('text-embedding-ada-002');
 
@@ -11,19 +13,35 @@ const generateChunks = input => {
 };
 
 export const generateEmbeddings = async value => {
-    const chunks = generateChunks(value);
-    const { embeddings } = await embedMany({
-        model: embeddingModel,
-        values: chunks,
-    });
-    return embeddings.map((e, i) => ({ content: chunks[i], embedding: e }));
+    try {
+        const chunks = generateChunks(value);
+        if (chunks.length === 0) {
+            logger.warn('No chunks generated from input', { valueLength: value.length });
+            return [];
+        }
+
+        const { embeddings } = await embedMany({
+            model: embeddingModel,
+            values: chunks,
+        });
+
+        return embeddings.map((e, i) => ({ content: chunks[i], embedding: e }));
+    } catch (error) {
+        logger.error('Failed to generate embeddings', { error: error.message });
+        throw new EmbeddingError('Could not generate embeddings for content', error);
+    }
 };
 
 export const generateEmbedding = async value => {
-    const input = value.replaceAll('\\n', ' ');
-    const { embedding } = await embed({
-        model: embeddingModel,
-        value: input,
-    });
-    return embedding;
+    try {
+        const input = value.replaceAll('\\n', ' ');
+        const { embedding } = await embed({
+            model: embeddingModel,
+            value: input,
+        });
+        return embedding;
+    } catch (error) {
+        logger.error('Failed to generate embedding', { error: error.message });
+        throw new EmbeddingError('Could not generate embedding for query', error);
+    }
 };

@@ -4,6 +4,8 @@ import { db } from '../db/index.js';
 import { generateEmbeddings } from '../services/embeddings.js';
 import { embeddings as embeddingsTable } from '../db/schema/embeddings.js';
 import { eq } from 'drizzle-orm';
+import { DatabaseError, ValidationError } from '../utils/errors.js';
+import { logger } from '../utils/logger.js';
 
 export const createResource = async input => {
     try {
@@ -16,7 +18,7 @@ export const createResource = async input => {
             // Extract domain name for website name
             const websiteName = new URL(url).hostname;
             [website] = await db.insert(websites).values({ url, name: websiteName }).returning();
-            console.log('Website created => ', website);
+            logger.info('Website created', { url, name: websiteName });
         } else {
             website = website[0];
         }
@@ -34,10 +36,16 @@ export const createResource = async input => {
             }))
         );
 
+        logger.debug('Resource created and embedded', { resourceId: resource.id, url });
         return 'Resource successfully created and embedded.';
     } catch (error) {
-        return error instanceof Error && error.message.length > 0
-            ? error.message
-            : 'Error, please try again.';
+        if (error.name === 'ZodError') {
+            logger.error('Resource validation failed', { error: error.errors });
+            throw new ValidationError(
+                'Invalid resource data: ' + error.errors.map(e => e.message).join(', ')
+            );
+        }
+        logger.error('Failed to create resource', { error: error.message, input });
+        throw new DatabaseError('Could not create resource', error);
     }
 };
