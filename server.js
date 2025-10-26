@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import { config } from 'dotenv';
 import { browserAgent } from './agents/browser.js';
 import { findRelevantContent } from './actions/search.js';
@@ -7,17 +8,47 @@ import { isValidUrl } from './utils/utils.js';
 import { errorHandler, notFoundHandler, asyncHandler } from './middleware/errorHandler.js';
 import { ValidationError } from './utils/errors.js';
 import { logger } from './utils/logger.js';
+import { checkDatabaseConnection } from './db/index.js';
 
 config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// CORS configuration
+const corsOptions = {
+    origin:
+        process.env.NODE_ENV === 'production' ? process.env.ALLOWED_ORIGINS?.split(',') || [] : '*',
+    credentials: true,
+    optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running' });
-});
+app.get(
+    '/health',
+    asyncHandler(async (req, res) => {
+        const health = {
+            status: 'ok',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            environment: process.env.NODE_ENV || 'development',
+        };
+
+        try {
+            await checkDatabaseConnection();
+            health.database = 'connected';
+        } catch (error) {
+            health.database = 'disconnected';
+            health.status = 'degraded';
+            logger.warn('Health check: database disconnected', { error: error.message });
+        }
+
+        const statusCode = health.status === 'ok' ? 200 : 503;
+        res.status(statusCode).json(health);
+    })
+);
 
 // use agent to generate knowledge base from a documentation URL
 app.post(
@@ -119,9 +150,17 @@ app.use(notFoundHandler);
 // Global error handler (must be last)
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, () => {
-    logger.info(`Server listening on port ${PORT}`);
-});
+// Check database connection before starting server
+checkDatabaseConnection()
+    .then(() => {
+        // Start server
+        app.listen(PORT, () => {
+            logger.info(`Server listening on port ${PORT}`);
+        });
+    })
+    .catch(error => {
+        logger.error('Failed to start server', { error: error.message });
+        process.exit(1);
+    });
 
 export default app;

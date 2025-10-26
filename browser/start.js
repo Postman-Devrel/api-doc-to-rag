@@ -3,11 +3,12 @@
  */
 
 import { chromium } from 'playwright';
+import { logger } from '../utils/logger.js';
 
 const browserObject = async () => {
     let browser;
     try {
-        console.log('Opening the browser......');
+        logger.info('Launching browser');
         browser = await chromium.launch({
             headless: false,
             chromiumSandbox: true,
@@ -15,9 +16,10 @@ const browserObject = async () => {
             args: ['--disable-extensions', '--disable-file-system'],
         });
 
-        console.log('Browser Launched');
+        logger.info('Browser launched successfully');
     } catch (err) {
-        console.log('Could not create a browser instance => : ', err);
+        logger.error('Could not create browser instance', { error: err.message });
+        throw err;
     }
     return browser;
 };

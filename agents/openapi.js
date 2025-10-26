@@ -1,5 +1,6 @@
 import prompts from '../constants/prompt.js';
 import { openAIRequest } from '../services/openai.js';
+import { logger } from '../utils/logger.js';
 
 async function openApiGenerator(curlDocs) {
     const query = prompts.openapi_gen_prompt;
@@ -14,13 +15,13 @@ async function openApiGenerator(curlDocs) {
         },
     ];
 
-    console.log('GENERATING OPEN API Documentation......');
+    logger.info('Generating OpenAPI documentation');
 
     const response = await openAIRequest('gpt-5', [], context, null, { summary: 'detailed' });
     const { output, output_text } = response;
 
-    console.log('CURL DOCS OUTPUT is: ', output);
-    console.log('GENERATED OPEN API DOCUMENTATION IS: ', output_text);
+    logger.debug('OpenAPI generation output', { output });
+    logger.info('OpenAPI documentation generated successfully');
 
     return output_text;
 }
