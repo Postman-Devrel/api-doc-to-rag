@@ -112,18 +112,23 @@ Generates an OpenAPI specification from stored documentation.
 GET /documentation/openapi?url=https://docs.example.com
 ```
 
-### Example Use Cases
+### Example Use Case
 
-This can be used as a RAG database to provide in memory context to an LLM or the APIs can be exposed as a tool in an MCP Server.
-This Examples shows how you can use [Postman's Agent Mode](https://www.postman.com/product/agent-mode/) to generate an MCP server from these APIs and use that MCP server to provide additional context to Agent Mode.
+This can be used as a RAG database to provide an in-memory context to an LLM, or the APIs can be exposed as a tool in an MCP Server.
+This example shows how you can use [Postman's Agent Mode](https://www.postman.com/product/agent-mode/) to generate an MCP server from these APIs and use that MCP server to provide additional context to Agent Mode.
 
-**Step 1:** Fork the collection [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/21505573-fb56bc16-9711-47c8-8cfc-f13de56ba0d2?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D21505573-fb56bc16-9711-47c8-8cfc-f13de56ba0d2%26entityType%3Dcollection%26workspaceId%3D1ee78290-27f9-489e-8c05-6ba1885fa187)
+**Step 1:** Fork the collection <br />
+[<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/21505573-fb56bc16-9711-47c8-8cfc-f13de56ba0d2?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D21505573-fb56bc16-9711-47c8-8cfc-f13de56ba0d2%26entityType%3Dcollection%26workspaceId%3D1ee78290-27f9-489e-8c05-6ba1885fa187)
 
 **Step 2:** Generate an MCP Server using [Postman's MCP Server Generator](https://www.postman.com/explore/mcp-generator).
 
 **Step 3:** Connect Agent Mode to the generated MCP Server
+<img width="901" height="785" alt="Screenshot 2025-10-30 at 18 51 30" src="https://github.com/user-attachments/assets/28b342ff-7aca-4a6d-8c17-c04446ccef22" />
 
-**Step 4:** Prompt Agent mode
+
+**Step 4:** Prompt Agent mode and watch it use its tools to query its knowledge base
+<img width="901" height="818" alt="Screenshot 2025-10-30 at 18 58 37" src="https://github.com/user-attachments/assets/e80a6953-461e-49e2-83b4-e6f74ffaaeda" />
+
 
 ### Project Structure
 
