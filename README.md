@@ -83,12 +83,6 @@ The server will start on `http://localhost:3000` (or your configured PORT).
 
 ## 📚 API Endpoints
 
-### Health Check
-
-```http
-GET /health
-```
-
 ### Generate Knowledge Base
 
 Scrapes an API documentation website and stores it in the knowledge base.
@@ -117,6 +111,19 @@ Generates an OpenAPI specification from stored documentation.
 ```http
 GET /documentation/openapi?url=https://docs.example.com
 ```
+
+### Example Use Cases
+
+This can be used as a RAG database to provide in memory context to an LLM or the APIs can be exposed as a tool in an MCP Server.
+This Examples shows how you can use [Postman's Agent Mode](https://www.postman.com/product/agent-mode/) to generate an MCP server from these APIs and use that MCP server to provide additional context to Agent Mode.
+
+**Step 1:** Fork the collection [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/21505573-fb56bc16-9711-47c8-8cfc-f13de56ba0d2?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D21505573-fb56bc16-9711-47c8-8cfc-f13de56ba0d2%26entityType%3Dcollection%26workspaceId%3D1ee78290-27f9-489e-8c05-6ba1885fa187)
+
+**Step 2:** Generate an MCP Server using [Postman's MCP Server Generator](https://www.postman.com/explore/mcp-generator).
+
+**Step 3:** Connect Agent Mode to the generated MCP Server
+
+**Step 4:** Prompt Agent mode
 
 ### Project Structure
 
