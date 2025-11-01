@@ -14,11 +14,14 @@ import { logger } from './utils/logger.js';
 import { checkDatabaseConnection } from './db/index.js';
 import { progressEmitter } from './utils/progress-emitter.js';
 
-config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.join(__dirname, '..');
+
+// Load .env from root directory
+const envPath = path.join(rootDir, '.env');
+console.log('Loading .env from:', envPath);
+config({ path: envPath, debug: true });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -148,10 +151,26 @@ app.get(
             page = result.page;
             const curlDocs = result.curlDocs;
 
-            // Send completion event
+            // Generate Postman collection automatically
+            logger.info('Auto-generating Postman collection', { url, sessionId });
+            progressEmitter.sendEvent(sessionId, 'collection_generation_started', {
+                message: 'Generating Postman collection...',
+            });
+
+            const { collection, resourceCount, conversionReport } = await generateCollection(
+                url,
+                false // useAI = false for faster generation
+            );
+
+            // Send collection as part of the completion event
+            progressEmitter.sendCollection(sessionId, {
+                collection,
+            });
+
+            // Send final completion event
             progressEmitter.sendComplete(sessionId, {
                 url,
-                data: curlDocs,
+                message: 'Documentation generation and collection creation completed successfully!',
             });
         } catch (error) {
             logger.error('Knowledge base generation failed', {

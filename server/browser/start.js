@@ -10,7 +10,7 @@ const browserObject = async () => {
     try {
         logger.info('Launching browser...');
         browser = await chromium.launch({
-            headless: false, // Headless is faster
+            headless: true, // Headless is faster
             chromiumSandbox: true,
             env: {},
             args: [

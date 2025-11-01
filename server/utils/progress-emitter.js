@@ -80,6 +80,22 @@ class ProgressEmitter extends EventEmitter {
     }
 
     /**
+     * Send screenshot event
+     */
+    sendScreenshot(sessionId, screenshot) {
+        this.sendEvent(sessionId, 'screenshot', {
+            screenshot,
+        });
+    }
+
+    /**
+     * Send collection event
+     */
+    sendCollection(sessionId, collectionData) {
+        this.sendEvent(sessionId, 'collection', collectionData);
+    }
+
+    /**
      * Send completion event
      */
     sendComplete(sessionId, result) {

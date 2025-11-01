@@ -58,11 +58,6 @@
                         </span>
                     </button>
                 </form>
-
-                <!-- Error Display -->
-                <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p class="text-sm text-red-800">{{ error }}</p>
-                </div>
             </div>
 
             <!-- Progress Section -->
@@ -71,6 +66,7 @@
                 :events="events"
                 :is-generating="isGenerating"
                 :completed="completed"
+                :url="url"
                 @reset="resetGeneration"
             />
         </div>
@@ -84,7 +80,6 @@ import RealtimeProgress from './components/RealtimeProgress.vue';
 const url = ref('');
 const isGenerating = ref(false);
 const completed = ref(false);
-const error = ref(null);
 const events = ref([]);
 let eventSource = null;
 
@@ -94,7 +89,6 @@ const startGeneration = async () => {
     // Reset state
     isGenerating.value = true;
     completed.value = false;
-    error.value = null;
     events.value = [];
 
     try {
@@ -118,7 +112,6 @@ const startGeneration = async () => {
                     eventSource.close();
                 } else if (data.type === 'error') {
                     isGenerating.value = false;
-                    error.value = data.data.message;
                     eventSource.close();
                 }
             } catch (err) {
@@ -128,12 +121,24 @@ const startGeneration = async () => {
 
         eventSource.onerror = err => {
             console.error('SSE error:', err);
-            error.value = 'Connection to server lost. Please try again.';
+            // Add error event to the events array so it shows in RealtimeProgress
+            events.value.push({
+                type: 'error',
+                timestamp: new Date().toISOString(),
+                data: { message: 'Connection to server lost. Please try again.' },
+                id: Date.now() + Math.random(),
+            });
             isGenerating.value = false;
             eventSource.close();
         };
     } catch (err) {
-        error.value = err.message;
+        // Add error event to the events array so it shows in RealtimeProgress
+        events.value.push({
+            type: 'error',
+            timestamp: new Date().toISOString(),
+            data: { message: err.message },
+            id: Date.now() + Math.random(),
+        });
         isGenerating.value = false;
     }
 };
@@ -145,7 +150,6 @@ const resetGeneration = () => {
     url.value = '';
     isGenerating.value = false;
     completed.value = false;
-    error.value = null;
     events.value = [];
 };
 </script>

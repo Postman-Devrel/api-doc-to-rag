@@ -1,15 +1,20 @@
 import OpenAI from 'openai';
-import { config } from 'dotenv';
 import { ExternalAPIError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
-config();
 
-const configuration = {
-    apiKey: process.env.OPENAI_API_KEY,
-    organization: process.env.ORGANIZATIONAL_ID,
+let openai;
+
+// Lazy initialization of OpenAI client
+const getOpenAIClient = () => {
+    if (!openai) {
+        const configuration = {
+            apiKey: process.env.OPENAI_API_KEY,
+            organization: process.env.ORGANIZATIONAL_ID,
+        };
+        openai = new OpenAI(configuration);
+    }
+    return openai;
 };
-
-const openai = new OpenAI(configuration);
 
 /**
  * Makes a request to OpenAI's responses API
@@ -31,6 +36,8 @@ const openAIRequest = async (
     previous_response_id = null
 ) => {
     try {
+        const openai = getOpenAIClient();
+
         // Only include reasoning parameter for reasoning models (o1, o4 series, and computer-use models)
         const isReasoningModel =
             model.startsWith('o1') || model.startsWith('o4') || model.includes('computer-use');

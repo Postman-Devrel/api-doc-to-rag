@@ -7,9 +7,6 @@ import { BrowserError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { progressEmitter } from '../utils/progress-emitter.js';
 
-import { config } from 'dotenv';
-config();
-
 /**
  * Helper function to take optimized screenshots
  * Reduces resolution and quality for faster encoding and transfer
@@ -228,6 +225,11 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
             const screenshotBase64 = await takeScreenshot(pageInstance);
             const screenshotUrl = `data:image/jpeg;base64,${screenshotBase64}`;
 
+            // Send screenshot to client via SSE
+            if (sessionId) {
+                progressEmitter.sendScreenshot(sessionId, screenshotBase64);
+            }
+
             // Send the screenshot back as a computer_call_output
             const tools = [
                 {
@@ -250,12 +252,18 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
             ];
 
             // Check for safety checks that need acknowledgment
-            const safetyChecks = response.output.filter(
-                item => item.type === 'pending_safety_checks'
-            );
+
+            console.log('response.output', JSON.stringify(response.output, null, 2));
+            // Extract pending safety checks from computer_call actions
+            const safetyChecks = response.output
+                .filter(item => item.type === 'computer_call' && item.pending_safety_checks)
+                .flatMap(item => item.pending_safety_checks);
 
             if (safetyChecks.length > 0) {
-                logger.warn('Safety checks detected, acknowledging...', safetyChecks);
+                logger.warn(
+                    'Safety checks detected, ========================== ================== acknowledging...',
+                    safetyChecks
+                );
 
                 // Acknowledge all safety checks
                 input[0].acknowledged_safety_checks = safetyChecks.map(sc => ({
