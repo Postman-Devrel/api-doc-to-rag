@@ -12,7 +12,8 @@ const websiteCache = new Map();
 
 export const createResource = async input => {
     try {
-        const { content, url } = insertResourceSchema.parse(input);
+        const { content, url, tags, description, curlCommand, parameters } =
+            insertResourceSchema.parse(input);
 
         // Check cache first to avoid database lookup
         let website;
@@ -46,7 +47,14 @@ export const createResource = async input => {
 
         const [resource] = await db
             .insert(resources)
-            .values({ content, websiteId: website.id })
+            .values({
+                content,
+                websiteId: website.id,
+                tags,
+                description,
+                curlCommand,
+                parameters,
+            })
             .returning();
 
         const embeddings = await generateEmbeddings(content);
@@ -117,7 +125,16 @@ export const createResourcesBatch = async inputs => {
             // Bulk insert all resources at once
             const insertedResources = await tx
                 .insert(resources)
-                .values(inputs.map(({ content }) => ({ content, websiteId: website.id })))
+                .values(
+                    inputs.map(({ content, tags, description, curlCommand, parameters }) => ({
+                        content,
+                        websiteId: website.id,
+                        tags,
+                        description,
+                        curlCommand,
+                        parameters,
+                    }))
+                )
                 .returning();
 
             logger.debug(`Inserted ${insertedResources.length} resources in batch`);

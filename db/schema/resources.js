@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { text, varchar, timestamp, pgTable } from 'drizzle-orm/pg-core';
+import { text, varchar, timestamp, pgTable, jsonb } from 'drizzle-orm/pg-core';
 import { createSelectSchema } from 'drizzle-zod';
 import { z } from 'zod';
 import { nanoid } from '../../utils/utils.js';
@@ -10,6 +10,10 @@ export const resources = pgTable('resources', {
         .primaryKey()
         .$defaultFn(() => nanoid()),
     content: text('content').notNull(),
+    tags: text('tags'),
+    description: text('description'),
+    curlCommand: text('curl_command'),
+    parameters: jsonb('parameters'), // Store parameters as JSONB for flexibility
     websiteId: varchar('website_id', { length: 191 })
         .notNull()
         .references(() => websites.id, {
@@ -29,6 +33,16 @@ export const resources = pgTable('resources', {
 export const insertResourceSchema = createSelectSchema(resources)
     .extend({
         url: z.string().url(), // Input parameter to find/create website
+        parameters: z
+            .array(
+                z.object({
+                    name: z.string(),
+                    type: z.string(),
+                    required: z.boolean(),
+                    description: z.string(),
+                })
+            )
+            .optional(),
     })
     .omit({
         id: true,

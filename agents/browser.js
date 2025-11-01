@@ -19,7 +19,7 @@ const takeScreenshot = async page => {
 
     const screenshot = await page.screenshot({
         type: 'jpeg',
-        quality: 75,
+        quality: 60,
         clip: {
             x: 0,
             y: 0,
@@ -156,7 +156,16 @@ async function computerUseLoop(pageInstance, response, url) {
                                     .join('; ')}`,
                             ];
                             const content = contentParts.filter(Boolean).join('\n\n');
-                            allDocsToEmbed.push({ content, url });
+
+                            // Store structured data along with content for OpenAPI generation
+                            allDocsToEmbed.push({
+                                content,
+                                url,
+                                tags: doc.tags,
+                                description: doc.description,
+                                curlCommand: doc.curl,
+                                parameters: doc.parameters, // Store as array of objects
+                            });
                         }
                     }
 
@@ -213,6 +222,23 @@ async function computerUseLoop(pageInstance, response, url) {
                     },
                 },
             ];
+
+            // Check for safety checks that need acknowledgment
+            const safetyChecks = response.output.filter(
+                item => item.type === 'pending_safety_checks'
+            );
+
+            if (safetyChecks.length > 0) {
+                logger.warn('Safety checks detected, acknowledging...', safetyChecks);
+
+                // Acknowledge all safety checks
+                input[0].acknowledged_safety_checks = safetyChecks.map(sc => ({
+                    id: sc.call_id,
+                    code: sc.code,
+                    message: sc.message,
+                }));
+            }
+
             response = await openAIRequest(
                 'computer-use-preview',
                 tools,
@@ -222,35 +248,6 @@ async function computerUseLoop(pageInstance, response, url) {
                 response.id
             );
             // const { output, output_text } = response;
-
-            // Check for safety checks that need acknowledgment
-            const safetyChecks = response.output.filter(item => item.type === 'safety_check');
-            if (safetyChecks.length > 0) {
-                logger.warn('Safety checks detected, acknowledging...', {
-                    checks: safetyChecks.map(sc => sc.call_id),
-                });
-
-                // Acknowledge all safety checks
-                const acknowledgments = safetyChecks.map(sc => ({
-                    call_id: sc.call_id,
-                    type: 'safety_check_acknowledgment',
-                    acknowledgment: 'acknowledged',
-                }));
-
-                // Send acknowledgments back to OpenAI
-                response = await openAIRequest(
-                    'computer-use-preview',
-                    tools,
-                    acknowledgments,
-                    null,
-                    { summary: 'concise' },
-                    response.id
-                );
-                logger.info('Safety checks acknowledged successfully');
-
-                // Continue to next iteration after acknowledgment
-                continue;
-            }
 
             // Queue curl docs generation in background (don't wait for it)
             logger.debug('Queuing curl docs generation for background processing');

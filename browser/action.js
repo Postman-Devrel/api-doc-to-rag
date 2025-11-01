@@ -55,7 +55,8 @@ async function handleBrowserAction(page, action) {
 
             case 'wait': {
                 console.log(`Action: wait`);
-                await page.waitForTimeout(2000);
+                // await page.waitForTimeout(2000);
+                // Ignore the model. This wastes unecessary time.
                 break;
             }
 

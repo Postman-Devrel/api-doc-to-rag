@@ -31,11 +31,13 @@ const openAIRequest = async (
     previous_response_id = null
 ) => {
     try {
-        const response = await openai.responses.create({
+        // Only include reasoning parameter for reasoning models (o1, o4 series)
+        const isReasoningModel = model.startsWith('o1') || model.startsWith('o4');
+
+        const requestParams = {
             model,
             tools,
             input,
-            reasoning,
             previous_response_id,
             text: schema
                 ? {
@@ -47,7 +49,14 @@ const openAIRequest = async (
                   }
                 : {},
             truncation: 'auto',
-        });
+        };
+
+        // Only add reasoning parameter for reasoning models
+        if (isReasoningModel) {
+            requestParams.reasoning = reasoning;
+        }
+
+        const response = await openai.responses.create(requestParams);
 
         return response;
     } catch (error) {

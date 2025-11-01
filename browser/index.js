@@ -10,7 +10,7 @@ const startBrowser = async url => {
     await page.route('**/*', route => {
         const resourceType = route.request().resourceType();
         // Block fonts, and media
-        if (['font', 'media'].includes(resourceType)) {
+        if (['media'].includes(resourceType)) {
             route.abort();
         } else {
             route.continue();

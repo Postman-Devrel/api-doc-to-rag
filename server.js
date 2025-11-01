@@ -3,7 +3,7 @@ import cors from 'cors';
 import { config } from 'dotenv';
 import { browserAgent } from './agents/browser.js';
 import { findRelevantContent } from './actions/search.js';
-import { generateOpenApiFromUrl } from './actions/openapi.js';
+import { generateCollection } from './actions/postman.js';
 import { isValidUrl } from './utils/utils.js';
 import { errorHandler, notFoundHandler, asyncHandler } from './middleware/errorHandler.js';
 import { ValidationError } from './utils/errors.js';
@@ -119,11 +119,11 @@ app.get(
     })
 );
 
-// Generate OpenAPI definition from the knowledge base
+// Generate Postman collection from the knowledge base
 app.get(
-    '/documentation/openapi',
+    '/documentation/postman',
     asyncHandler(async (req, res) => {
-        const { url } = req.query;
+        const { url, useAI } = req.query;
 
         if (!url) {
             throw new ValidationError('URL parameter is required (e.g., ?url=https://example.com)');
@@ -133,13 +133,27 @@ app.get(
             throw new ValidationError('Invalid URL format. Please provide a valid URL');
         }
 
-        logger.info('Generating OpenAPI definition', { url });
+        // Parse useAI parameter (default to false)
+        const shouldUseAI = useAI === 'true';
 
-        const { openApi, resourceCount } = await generateOpenApiFromUrl(url);
+        logger.info('Generating Postman collection', { url, useAI: shouldUseAI });
+
+        const { collection, resourceCount, conversionReport } = await generateCollection(
+            url,
+            shouldUseAI
+        );
 
         res.json({
+            collection,
             resourceCount,
-            openApi,
+            conversionReport: {
+                total: conversionReport.total,
+                successful: conversionReport.successful,
+                duplicates: conversionReport.duplicates,
+                failed: conversionReport.failed,
+                errors: conversionReport.errors,
+                generatedBy: conversionReport.generatedBy,
+            },
         });
     })
 );

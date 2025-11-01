@@ -19,7 +19,7 @@ async function curlDocsGenerator(screenshot, previousResponseId) {
         logger.debug('Generating curl docs from screenshot');
 
         const curlDocsResponse = await openAIRequest(
-            'o4-mini',
+            'gpt-4o-mini',
             [],
             context,
             schemas.curl_docs_schema,
