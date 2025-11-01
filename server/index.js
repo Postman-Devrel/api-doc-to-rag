@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
 import { nanoid } from 'nanoid';
 import { browserAgent } from './agents/browser.js';
@@ -14,6 +16,10 @@ import { progressEmitter } from './utils/progress-emitter.js';
 
 config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.join(__dirname, '..');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -27,6 +33,11 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Serve static frontend files in production
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(rootDir, 'dist')));
+}
 
 app.get(
     '/health',
@@ -99,13 +110,13 @@ app.post(
 );
 
 // SSE-enabled endpoint for real-time progress updates
-app.post(
+app.get(
     '/knowledge-base/stream',
     asyncHandler(async (req, res) => {
-        const { url } = req.body;
+        const { url } = req.query;
 
         if (!url) {
-            throw new ValidationError('URL is required in the request body');
+            throw new ValidationError('URL is required as a query parameter');
         }
 
         if (!isValidUrl(url)) {
@@ -237,7 +248,21 @@ app.get(
     })
 );
 
-// Handle 404 errors
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (req, res, next) => {
+        // Skip API routes and let them 404 properly
+        if (
+            req.path.startsWith('/api/') ||
+            req.path.startsWith('/knowledge-base/') ||
+            req.path.startsWith('/documentation/')
+        ) {
+            return next();
+        }
+        res.sendFile(path.join(rootDir, 'dist', 'index.html'));
+    });
+}
+
+// Handle 404 errors (must come after all routes)
 app.use(notFoundHandler);
 
 // Global error handler (must be last)

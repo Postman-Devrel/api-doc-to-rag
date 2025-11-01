@@ -1,8 +1,8 @@
 # API Documentation to RAG Knowledge Base
 
-An AI Agent that that generates a knowledge base for any API documentation, given it's url.
+An AI Agent that generates a knowledge base for any API documentation, given its URL.
 
-It uses the OpenAI browser use model to control an headless chromium browser, and peruses the entirely of any given API documentation. It generates embeddings for each page or section of the documentation it encounters and stores these embeddings in a pgvector database. It exposes an endpoint that can be used to do a similarity search on the embeddings, and therefore usable in RAG (Retrieval-Augmented Generation) knowledge base systems
+It uses the OpenAI browser use model to control a headless chromium browser, and peruses the entirety of any given API documentation. It generates embeddings for each page or section of the documentation it encounters and stores these embeddings in a pgvector database. It exposes an endpoint that can be used to do a similarity search on the embeddings, and therefore usable in RAG (Retrieval-Augmented Generation) knowledge base systems.
 
 ## 🏗️ Architecture
 
@@ -28,12 +28,28 @@ It uses the OpenAI browser use model to control an headless chromium browser, an
 └─────────────────┘
 ```
 
+## 📁 Project Structure
+
+```
+doc-collection-gen/
+├── client/                    # Vue.js Frontend
+│   └── package.json
+├── server/                    # Express Backend
+│   ├── agents/               # AI agents
+│   ├── actions/              # Business logic
+│   ├── db/                   # Database
+│   ├── package.json
+│   └── drizzle.config.js
+├── package.json              # Root workspace manager
+└── yarn.lock                 # Yarn lockfile
+```
+
 ## 📋 Prerequisites
 
 - **Node.js**: v18 or higher
+- **Yarn**: v1.22+ (Classic)
 - **PostgreSQL**: v15+ with pgvector extension
 - **OpenAI API Key**: For AI-powered extraction and embeddings
-- **Yarn**: Package manager
 
 ## 🚀 Quick Start
 
@@ -50,9 +66,17 @@ cd api-doc-to-rag
 yarn install
 ```
 
+This single command installs dependencies for all workspaces (root, client, server).
+
 ### 3. Set Up Environment Variables
 
-Create a `.env` file in the root director. See `.env.examples` for examples.
+Create a `.env` file in the root directory. See `.env.example` for examples.
+
+```env
+OPENAI_API_KEY=sk-...
+DATABASE_URL=postgresql://...
+PORT=3000
+```
 
 ### 4. Set Up Database
 
@@ -74,12 +98,43 @@ yarn db:migrate
 # Development mode (with hot reload)
 yarn dev
 
-OR
-
+# Or production mode
 yarn start
 ```
 
 The server will start on `http://localhost:3000` (or your configured PORT).
+
+### 6. Start the Frontend (Optional)
+
+```bash
+# In a separate terminal
+yarn client:dev
+```
+
+The client will start on `http://localhost:5173`.
+
+## 📝 Available Commands
+
+```bash
+# Server
+yarn start              # Start production server
+yarn dev                # Start dev server with hot reload
+
+# Client
+yarn client:dev         # Start Vite dev server
+yarn client:build       # Build for production
+
+# Database
+yarn db:setup           # Setup pgvector extension
+yarn db:migrate         # Run migrations
+yarn db:push            # Push schema changes
+yarn db:studio          # Open Drizzle Studio
+yarn db:generate        # Generate migrations
+
+# Utilities
+yarn format             # Format code with Prettier
+yarn format:check       # Check code formatting
+```
 
 ## 📚 API Endpoints
 
@@ -96,21 +151,77 @@ Content-Type: application/json
 }
 ```
 
+### Stream Progress (SSE)
+
+Get real-time progress updates while generating documentation.
+
+```http
+GET /knowledge-base/stream?url=https://docs.example.com
+```
+
 ### Search Documentation
 
 Performs semantic search on the knowledge base.
 
 ```http
-GET /documentation/search?query=authentication&url=https://docs.example.com
+GET /api/search?query=authentication&url=https://docs.example.com
 ```
 
-### Generate OpenAPI Specification
+### Generate Postman Collection
 
-Generates an OpenAPI specification from stored documentation.
+Generates a Postman collection from stored documentation.
 
 ```http
-GET /documentation/openapi?url=https://docs.example.com
+GET /documentation/postman?url=https://docs.example.com&useAI=false
 ```
+
+### Health Check
+
+```http
+GET /health
+```
+
+## 🎯 Workspace Commands
+
+```bash
+# Run command in specific workspace
+yarn workspace server <command>
+yarn workspace client <command>
+
+# Install package to specific workspace
+yarn workspace server add <package>
+yarn workspace client add <package>
+
+# Example: Add a package to server
+yarn workspace server add express-rate-limit
+```
+
+## 🔧 Environment Variables
+
+```
+
+## 🛠️ Tech Stack
+
+**Frontend:**
+
+- Vue 3 (Composition API)
+- Vite
+- Tailwind CSS
+- Server-Sent Events (SSE)
+
+**Backend:**
+
+- Express.js
+- OpenAI API (Computer Use + Embeddings)
+- Playwright (browser automation)
+- Drizzle ORM + PostgreSQL + pgvector
+- Winston (logging)
+
+**Monorepo:**
+
+- Yarn Workspaces
+- Single lockfile
+- Shared dependencies
 
 ### Example Use Case
 
@@ -130,61 +241,18 @@ This example shows how you can use [Postman's Agent Mode](https://www.postman.co
 <img width="901" height="818" alt="Screenshot 2025-10-30 at 18 58 37" src="https://github.com/user-attachments/assets/e80a6953-461e-49e2-83b4-e6f74ffaaeda" />
 
 
-### Project Structure
-
-```
-├── actions/          # Business logic
-│   ├── openapi.js    # OpenAPI generation
-│   ├── resources.js  # Resource management
-│   └── search.js     # Semantic search
-├── agents/           # AI agents
-│   ├── browser.js    # Browser automation agent
-│   ├── curl.js       # Curl documentation extractor
-│   └── openapi.js    # OpenAPI generator agent
-├── browser/          # Browser automation
-│   ├── action.js     # Browser action handlers
-│   ├── index.js      # Browser initialization
-│   └── start.js      # Browser startup
-├── constants/        # Configuration
-│   ├── prompt.js     # AI prompts
-│   └── schema.js     # Data schemas
-├── db/               # Database
-│   ├── index.js      # Database client
-│   ├── migrate.js    # Migration runner
-│   ├── schema/       # Drizzle schemas
-│   └── migrations/   # SQL migrations
-├── middleware/       # Express middleware
-│   └── errorHandler.js
-├── services/         # External services
-│   ├── embeddings.js # Embedding generation
-│   └── openai.js     # OpenAI client
-├── utils/            # Utilities
-│   ├── errors.js     # Custom error classes
-│   ├── logger.js     # Logging utility
-│   └── utils.js      # Helper functions
-└── server.js         # Express server
-```
-
-## 📊 Database Schema
-
-### Tables
-
-- **websites**: Stores website metadata
-- **resources**: Stores extracted documentation content
-- **embeddings**: Stores vector embeddings for semantic search
-
-### Indexes
-
-- HNSW index on embeddings for fast vector similarity search
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+3. Make your changes
+4. Run tests and formatting: `yarn format`
+5. Commit your changes: `git commit -m 'Add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
 
 ## 📄 License
 
 MIT License - see LICENSE file for details
+```

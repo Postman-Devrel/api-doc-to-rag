@@ -145,16 +145,6 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
             if (computerCalls.length === 0) {
                 logger.info('No more computer calls. Processing queued curl docs generation...');
 
-                // Emit curl processing start event
-                if (sessionId) {
-                    progressEmitter.sendCurlProgress(
-                        sessionId,
-                        'processing',
-                        0,
-                        curlDocsQueue.length
-                    );
-                }
-
                 // Wait for all queued curl docs to complete
                 if (curlDocsQueue.length > 0) {
                     logger.info(
@@ -200,26 +190,8 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
                             `Creating embeddings for ${allDocsToEmbed.length} documents in batch...`
                         );
 
-                        // Emit embedding progress start
-                        if (sessionId) {
-                            progressEmitter.sendEmbeddingProgress(
-                                sessionId,
-                                0,
-                                allDocsToEmbed.length
-                            );
-                        }
-
                         await createResourcesBatch(allDocsToEmbed);
                         logger.info('All resources created and embedded successfully');
-
-                        // Emit embedding progress complete
-                        if (sessionId) {
-                            progressEmitter.sendEmbeddingProgress(
-                                sessionId,
-                                allDocsToEmbed.length,
-                                allDocsToEmbed.length
-                            );
-                        }
                     }
                 }
 
@@ -311,33 +283,11 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
                     curlDocsResponseId = result.responseId;
                     logger.debug('Curl docs generated in background');
 
-                    // Emit curl completion event
-                    if (sessionId) {
-                        progressEmitter.sendCurlProgress(
-                            sessionId,
-                            'completed',
-                            curlDocsQueue.length + 1,
-                            curlDocsQueue.length + 1
-                        );
-                    }
-
                     return result;
                 }
             );
 
             curlDocsQueue.push(curlDocsPromise);
-
-            // Emit curl queued event
-            if (sessionId) {
-                progressEmitter.sendCurlProgress(
-                    sessionId,
-                    'queued',
-                    curlDocsQueue.length,
-                    curlDocsQueue.length
-                );
-            }
-
-            // Continue immediately to next browser action without waiting!
         }
 
         return curlDocsList;
