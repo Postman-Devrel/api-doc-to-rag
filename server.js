@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { config } from 'dotenv';
+import { nanoid } from 'nanoid';
 import { browserAgent } from './agents/browser.js';
 import { findRelevantContent } from './actions/search.js';
 import { generateCollection } from './actions/postman.js';
@@ -9,6 +10,7 @@ import { errorHandler, notFoundHandler, asyncHandler } from './middleware/errorH
 import { ValidationError } from './utils/errors.js';
 import { logger } from './utils/logger.js';
 import { checkDatabaseConnection } from './db/index.js';
+import { progressEmitter } from './utils/progress-emitter.js';
 
 config();
 
@@ -93,6 +95,83 @@ app.post(
                 logger.debug('Browser closed');
             }
         }
+    })
+);
+
+// SSE-enabled endpoint for real-time progress updates
+app.post(
+    '/knowledge-base/stream',
+    asyncHandler(async (req, res) => {
+        const { url } = req.body;
+
+        if (!url) {
+            throw new ValidationError('URL is required in the request body');
+        }
+
+        if (!isValidUrl(url)) {
+            throw new ValidationError('Invalid URL format. Please provide a valid URL');
+        }
+
+        // Generate unique session ID
+        const sessionId = nanoid();
+
+        // Set SSE headers
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+        // Register SSE session
+        progressEmitter.registerSession(sessionId, res);
+
+        logger.info('Starting knowledge base generation with SSE', { url, sessionId });
+
+        // Send initial event
+        progressEmitter.sendEvent(sessionId, 'started', { url }, 0);
+
+        let browser, page;
+        try {
+            // Start browser agent to extract curl documentation (with sessionId for progress)
+            const result = await browserAgent(url, sessionId);
+            browser = result.browser;
+            page = result.page;
+            const curlDocs = result.curlDocs;
+
+            // Send completion event
+            progressEmitter.sendComplete(sessionId, {
+                url,
+                data: curlDocs,
+            });
+        } catch (error) {
+            logger.error('Knowledge base generation failed', {
+                url,
+                sessionId,
+                error: error.message,
+            });
+            progressEmitter.sendError(sessionId, error);
+        } finally {
+            // Ensure browser resources are always closed
+            if (page) {
+                await page
+                    .close()
+                    .catch(err => logger.error('Failed to close page', { error: err.message }));
+                logger.debug('Page closed');
+            }
+            if (browser) {
+                await browser
+                    .close()
+                    .catch(err => logger.error('Failed to close browser', { error: err.message }));
+                logger.debug('Browser closed');
+            }
+        }
+
+        // Handle client disconnect
+        req.on('close', () => {
+            if (progressEmitter.hasSession(sessionId)) {
+                logger.info('Client disconnected from SSE', { sessionId });
+                progressEmitter.unregisterSession(sessionId);
+            }
+        });
     })
 );
 

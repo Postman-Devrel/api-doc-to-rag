@@ -201,6 +201,7 @@ const prompts = {
         - Include tags relevant to the current documentation page or section, or use an empty array if unavailable.
         - Only generate one curl documentation array per page—combine all requests from the page into a single array without duplicating requests in multiple arrays
         - Take note of information that you have previously extracted and avoid duplicating it. Return an empty curlDocs array if you have previously extracted all the information.
+        - Always share your thoughts and reasoning to help the user understand what you are doing or what you plan on doing.
 
         Output Format:
 

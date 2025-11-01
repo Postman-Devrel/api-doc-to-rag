@@ -31,8 +31,9 @@ const openAIRequest = async (
     previous_response_id = null
 ) => {
     try {
-        // Only include reasoning parameter for reasoning models (o1, o4 series)
-        const isReasoningModel = model.startsWith('o1') || model.startsWith('o4');
+        // Only include reasoning parameter for reasoning models (o1, o4 series, and computer-use models)
+        const isReasoningModel =
+            model.startsWith('o1') || model.startsWith('o4') || model.includes('computer-use');
 
         const requestParams = {
             model,

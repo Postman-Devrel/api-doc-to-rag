@@ -5,6 +5,7 @@ import curlDocsGenerator from './curl.js';
 import { createResourcesBatch } from '../actions/resources.js';
 import { BrowserError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { progressEmitter } from '../utils/progress-emitter.js';
 
 import { config } from 'dotenv';
 config();
@@ -53,10 +54,14 @@ const getDelayForAction = action => {
     }
 };
 
-const browserAgent = async url => {
+const browserAgent = async (url, sessionId = null) => {
     try {
         // load the browser with the API documentation page;
         const { page, browser } = await startBrowser(url);
+
+        if (sessionId) {
+            progressEmitter.sendEvent(sessionId, 'browser_started', { url }, 5);
+        }
 
         // get the initial screenshot of the page (optimized for speed);
         let initialPageScreenshot = await takeScreenshot(page);
@@ -92,16 +97,19 @@ const browserAgent = async url => {
         const response = await openAIRequest('computer-use-preview', tools, input);
         // const { output, output_text } = response;
 
-        const curlDocs = await computerUseLoop(page, response, url);
+        const curlDocs = await computerUseLoop(page, response, url, sessionId);
 
         return { browser, page, curlDocs };
     } catch (error) {
         logger.error('Browser agent failed', { url, error: error.message });
+        if (sessionId) {
+            progressEmitter.sendError(sessionId, error);
+        }
         throw new BrowserError('Failed to start browser automation', error);
     }
 };
 
-async function computerUseLoop(pageInstance, response, url) {
+async function computerUseLoop(pageInstance, response, url, sessionId = null) {
     /**
      * Run the loop that executes computer actions until no 'computer_call' is found.
      */
@@ -110,6 +118,8 @@ async function computerUseLoop(pageInstance, response, url) {
 
     // Queue to store curl docs generation promises for background processing
     const curlDocsQueue = [];
+
+    let actionCount = 0;
 
     try {
         while (true) {
@@ -124,11 +134,26 @@ async function computerUseLoop(pageInstance, response, url) {
                         summary: reasoning.summary,
                         content: reasoning.content || 'No detailed content',
                     });
+
+                    // Emit reasoning event to SSE
+                    if (sessionId) {
+                        progressEmitter.sendReasoning(sessionId, reasoning.summary);
+                    }
                 });
             }
 
             if (computerCalls.length === 0) {
                 logger.info('No more computer calls. Processing queued curl docs generation...');
+
+                // Emit curl processing start event
+                if (sessionId) {
+                    progressEmitter.sendCurlProgress(
+                        sessionId,
+                        'processing',
+                        0,
+                        curlDocsQueue.length
+                    );
+                }
 
                 // Wait for all queued curl docs to complete
                 if (curlDocsQueue.length > 0) {
@@ -174,8 +199,27 @@ async function computerUseLoop(pageInstance, response, url) {
                         logger.info(
                             `Creating embeddings for ${allDocsToEmbed.length} documents in batch...`
                         );
+
+                        // Emit embedding progress start
+                        if (sessionId) {
+                            progressEmitter.sendEmbeddingProgress(
+                                sessionId,
+                                0,
+                                allDocsToEmbed.length
+                            );
+                        }
+
                         await createResourcesBatch(allDocsToEmbed);
                         logger.info('All resources created and embedded successfully');
+
+                        // Emit embedding progress complete
+                        if (sessionId) {
+                            progressEmitter.sendEmbeddingProgress(
+                                sessionId,
+                                allDocsToEmbed.length,
+                                allDocsToEmbed.length
+                            );
+                        }
                     }
                 }
 
@@ -191,6 +235,16 @@ async function computerUseLoop(pageInstance, response, url) {
 
             const action = computerCall.action;
             logger.debug('Executing action', { action });
+
+            actionCount++;
+
+            // Emit action event to SSE
+            if (sessionId) {
+                progressEmitter.sendAction(sessionId, action.action, {
+                    actionNumber: actionCount,
+                    details: action,
+                });
+            }
 
             // Execute the action in the browser
             await handleBrowserAction(pageInstance, action);
@@ -251,15 +305,37 @@ async function computerUseLoop(pageInstance, response, url) {
 
             // Queue curl docs generation in background (don't wait for it)
             logger.debug('Queuing curl docs generation for background processing');
+
             const curlDocsPromise = curlDocsGenerator(screenshotUrl, curlDocsResponseId).then(
                 result => {
                     curlDocsResponseId = result.responseId;
                     logger.debug('Curl docs generated in background');
+
+                    // Emit curl completion event
+                    if (sessionId) {
+                        progressEmitter.sendCurlProgress(
+                            sessionId,
+                            'completed',
+                            curlDocsQueue.length + 1,
+                            curlDocsQueue.length + 1
+                        );
+                    }
+
                     return result;
                 }
             );
 
             curlDocsQueue.push(curlDocsPromise);
+
+            // Emit curl queued event
+            if (sessionId) {
+                progressEmitter.sendCurlProgress(
+                    sessionId,
+                    'queued',
+                    curlDocsQueue.length,
+                    curlDocsQueue.length
+                );
+            }
 
             // Continue immediately to next browser action without waiting!
         }
