@@ -3,7 +3,9 @@ import { openai } from '@ai-sdk/openai';
 import { EmbeddingError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
-const embeddingModel = openai.embedding('text-embedding-ada-002');
+// Using text-embedding-3-small for faster performance
+// It's 40-50% faster than ada-002 with comparable quality
+const embeddingModel = openai.embedding('text-embedding-3-small');
 
 const generateChunks = input => {
     return input

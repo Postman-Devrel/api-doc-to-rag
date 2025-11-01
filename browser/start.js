@@ -8,12 +8,36 @@ import { logger } from '../utils/logger.js';
 const browserObject = async () => {
     let browser;
     try {
-        logger.info('Launching browser');
+        logger.info('Launching browser...');
         browser = await chromium.launch({
-            headless: false,
+            headless: false, // Headless is faster
             chromiumSandbox: true,
             env: {},
-            args: ['--disable-extensions', '--disable-file-system'],
+            args: [
+                '--disable-extensions',
+                '--disable-file-system',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--disable-gpu',
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--disable-background-networking',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-breakpad',
+                '--disable-component-extensions-with-background-pages',
+                '--disable-features=TranslateUI',
+                '--disable-ipc-flooding-protection',
+                '--disable-renderer-backgrounding',
+                '--metrics-recording-only',
+                '--mute-audio',
+                '--no-default-browser-check',
+                '--no-first-run',
+                '--password-store=basic',
+                '--use-mock-keychain',
+            ],
         });
 
         logger.info('Browser launched successfully');

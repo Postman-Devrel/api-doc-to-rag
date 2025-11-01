@@ -2,20 +2,64 @@ import { openAIRequest } from '../services/openai.js';
 import { startBrowser, handleBrowserAction } from '../browser/index.js';
 import prompts from '../constants/prompt.js';
 import curlDocsGenerator from './curl.js';
-import { createResource } from '../actions/resources.js';
+import { createResourcesBatch } from '../actions/resources.js';
 import { BrowserError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
 import { config } from 'dotenv';
 config();
 
+/**
+ * Helper function to take optimized screenshots
+ * Reduces resolution and quality for faster encoding and transfer
+ */
+const takeScreenshot = async page => {
+    const maxWidth = Math.min(1280, parseInt(process.env.DISPLAY_WIDTH));
+    const maxHeight = Math.min(800, parseInt(process.env.DISPLAY_HEIGHT));
+
+    const screenshot = await page.screenshot({
+        type: 'jpeg',
+        quality: 75,
+        clip: {
+            x: 0,
+            y: 0,
+            width: maxWidth,
+            height: maxHeight,
+        },
+    });
+
+    return screenshot.toString('base64');
+};
+
+/**
+ * Get optimal delay time based on action type
+ * Different actions need different wait times for content to settle
+ */
+const getDelayForAction = action => {
+    const actionType = action.action;
+    switch (actionType) {
+        case 'mouse_move':
+        case 'screenshot':
+            return 100; // Very fast - no page changes
+        case 'key':
+        case 'type':
+            return 200; // Fast - minimal changes
+        case 'scroll':
+            return 250; // Medium - content loads
+        case 'click':
+            return 400; // Slower - might trigger navigation/actions
+        default:
+            return 300; // Reasonable fallback
+    }
+};
+
 const browserAgent = async url => {
     try {
         // load the browser with the API documentation page;
         const { page, browser } = await startBrowser(url);
 
-        // get the initial screenshot of the page;
-        let initialPageScreenshot = (await page.screenshot()).toString('base64');
+        // get the initial screenshot of the page (optimized for speed);
+        let initialPageScreenshot = await takeScreenshot(page);
 
         // define the computer use tool;
         const tools = [
@@ -38,7 +82,7 @@ const browserAgent = async url => {
                     },
                     {
                         type: 'input_image',
-                        image_url: `data:image/png;base64,${initialPageScreenshot}`,
+                        image_url: `data:image/jpeg;base64,${initialPageScreenshot}`,
                     },
                 ],
             },
@@ -64,6 +108,9 @@ async function computerUseLoop(pageInstance, response, url) {
     let curlDocsList = [];
     let curlDocsResponseId = null;
 
+    // Queue to store curl docs generation promises for background processing
+    const curlDocsQueue = [];
+
     try {
         while (true) {
             const computerCalls = response.output.filter(item => item.type === 'computer_call');
@@ -71,11 +118,58 @@ async function computerUseLoop(pageInstance, response, url) {
             const reasonings = response.output.filter(item => item.type === 'reasoning');
 
             if (reasonings.length > 0) {
-                logger.debug('AI reasoning', { summary: reasonings[0].summary });
+                reasonings.forEach((reasoning, index) => {
+                    logger.info('AI Agent Reasoning', {
+                        step: index + 1,
+                        summary: reasoning.summary,
+                        content: reasoning.content || 'No detailed content',
+                    });
+                });
             }
 
             if (computerCalls.length === 0) {
-                logger.info('No more computer calls. Finished browsing web page.');
+                logger.info('No more computer calls. Processing queued curl docs generation...');
+
+                // Wait for all queued curl docs to complete
+                if (curlDocsQueue.length > 0) {
+                    logger.info(
+                        `Waiting for ${curlDocsQueue.length} queued curl docs to complete...`
+                    );
+                    const queuedResults = await Promise.all(curlDocsQueue);
+
+                    // Collect all documents for batch embedding creation
+                    const allDocsToEmbed = [];
+                    for (const { curlObj } of queuedResults) {
+                        curlDocsList.push(curlObj);
+
+                        const { curlDocs } = curlObj;
+                        for (const doc of curlDocs) {
+                            const contentParts = [
+                                `Tags: ${doc.tags}`,
+                                `Description: ${doc.description}`,
+                                `Curl Command: ${doc.curl}`,
+                                `Parameters: ${doc.parameters
+                                    .map(
+                                        p =>
+                                            `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
+                                    )
+                                    .join('; ')}`,
+                            ];
+                            const content = contentParts.filter(Boolean).join('\n\n');
+                            allDocsToEmbed.push({ content, url });
+                        }
+                    }
+
+                    // Create all embeddings in parallel
+                    if (allDocsToEmbed.length > 0) {
+                        logger.info(
+                            `Creating embeddings for ${allDocsToEmbed.length} documents in batch...`
+                        );
+                        await createResourcesBatch(allDocsToEmbed);
+                        logger.info('All resources created and embedded successfully');
+                    }
+                }
+
                 response.output.forEach(item => {
                     logger.debug('Final response item', { item: JSON.stringify(item, null, 2) });
                 });
@@ -91,11 +185,13 @@ async function computerUseLoop(pageInstance, response, url) {
 
             // Execute the action in the browser
             await handleBrowserAction(pageInstance, action);
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Allow time for changes to take effect.
 
-            // Take a screenshot after the action
-            const screenshotBase64 = (await pageInstance.screenshot()).toString('base64');
-            const screenshotUrl = `data:image/png;base64,${screenshotBase64}`;
+            const delay = getDelayForAction(action);
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            // Take an optimized screenshot after the action (reduced resolution for speed)
+            const screenshotBase64 = await takeScreenshot(pageInstance);
+            const screenshotUrl = `data:image/jpeg;base64,${screenshotBase64}`;
 
             // Send the screenshot back as a computer_call_output
             const tools = [
@@ -127,38 +223,48 @@ async function computerUseLoop(pageInstance, response, url) {
             );
             // const { output, output_text } = response;
 
-            // generate the curl docs
-            const { responseId, curlObj } = await curlDocsGenerator(
-                screenshotUrl,
-                curlDocsResponseId
-            );
-            curlDocsResponseId = responseId;
+            // Check for safety checks that need acknowledgment
+            const safetyChecks = response.output.filter(item => item.type === 'safety_check');
+            if (safetyChecks.length > 0) {
+                logger.warn('Safety checks detected, acknowledging...', {
+                    checks: safetyChecks.map(sc => sc.call_id),
+                });
 
-            const { curlDocs } = curlObj;
+                // Acknowledge all safety checks
+                const acknowledgments = safetyChecks.map(sc => ({
+                    call_id: sc.call_id,
+                    type: 'safety_check_acknowledgment',
+                    acknowledgment: 'acknowledged',
+                }));
 
-            // Store the curl docs in the vector database and process each curl doc individually for better semantic search
-            for (const doc of curlDocs) {
-                // Extract meaningful text content
-                const contentParts = [
-                    `Tags: ${doc.tags}`,
-                    `Description: ${doc.description}`,
-                    `Curl Command: ${doc.curl}`,
-                    `Parameters: ${doc.parameters
-                        .map(
-                            p =>
-                                `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
-                        )
-                        .join('; ')}`,
-                ];
+                // Send acknowledgments back to OpenAI
+                response = await openAIRequest(
+                    'computer-use-preview',
+                    tools,
+                    acknowledgments,
+                    null,
+                    { summary: 'concise' },
+                    response.id
+                );
+                logger.info('Safety checks acknowledged successfully');
 
-                const content = contentParts.filter(Boolean).join('\n\n');
-
-                // Store in the resources table and create embeddings
-                await createResource({ content, url });
-                logger.info('Resource created and embedded');
+                // Continue to next iteration after acknowledgment
+                continue;
             }
 
-            curlDocsList.push(curlObj);
+            // Queue curl docs generation in background (don't wait for it)
+            logger.debug('Queuing curl docs generation for background processing');
+            const curlDocsPromise = curlDocsGenerator(screenshotUrl, curlDocsResponseId).then(
+                result => {
+                    curlDocsResponseId = result.responseId;
+                    logger.debug('Curl docs generated in background');
+                    return result;
+                }
+            );
+
+            curlDocsQueue.push(curlDocsPromise);
+
+            // Continue immediately to next browser action without waiting!
         }
 
         return curlDocsList;

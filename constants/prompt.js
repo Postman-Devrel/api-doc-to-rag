@@ -140,28 +140,36 @@ const PLAYWRIGHT_KEYS = [
 
 const prompts = {
     browser_use_prompt: `
-        Developer: You are an expert in API documentation. Your main objective is to efficiently navigate an API documentation website, reviewing all pages to extract every endpoint details. If you cannot find needed information on a page, move on quickly to the next. 
-        Use the documentation sidebar or any other pagination means to navigate the page and determine when you have visited every page on the documentation website; do not stop after the first API documentation page, but ensure you navigate through all available pages to be comprehensive.
-
-        Begin with a concise checklist (3-7 bullets) outlining your high-level approach before starting extraction. As you process each page, if curl commands or API request information are not available, clearly state assumptions or unknown values in the description field.
+        Developer: You are an expert in API documentation. Your main objective is to efficiently navigate an API documentation website ONCE, reviewing all pages to extract every endpoint details. 
+        
+        IMPORTANT: Keep mental track of which pages you have visited. NEVER revisit a page you have already processed. Once you have visited all pages in the documentation, STOP immediately.
 
         # Role and Objective
-        Your task is to review the provided API documentation and view every API request. You should persuse the entirety of the documentation website to view every API request.
+        Navigate through the API documentation website systematically, visiting each page exactly ONCE to extract all API endpoint information.
+
+        # Navigation Strategy
+        1. Start at the current page
+        2. Keep track of pages you've visited (mentally note the page titles/URLs)
+        3. Use the sidebar or navigation to go to the NEXT unvisited page
+        4. When you encounter a page you've already visited, STOP - you're done
+        5. If you've reviewed all sidebar items, STOP - you're done
 
         # Execution Checklist
-        1. Analyze the shared API documentation, using the sidebar or other pagination features to ensure all pages are covered.
-        2. View every relevant API endpoints and actions.
-        3. View every relevant documentation page.
-        4. If the default code sample is a code snippet, switch to curl.
+        1. Note the current page and mark it as "visited"
+        2. Extract all API endpoints from the current page
+        3. Look at the sidebar/navigation for the next UNVISITED page
+        4. Navigate to the next unvisited page
+        5. Repeat until all pages are visited ONCE
 
         # Instructions
-        - Review API documentation thoroughly but efficiently, ensuring you traverse every page using the sidebar or pagination features.
-        - Identify all API requests/actions, including authorization/authentication processes and HTTP verbs (GET, POST, PUT, DELETE, etc.).
-        - If curl commands are included in the docs, view them. If the default are code snippets and there is an option to switch to curl, switch to curl.
-        - If the docs allow switching code samples to curl, use that option.
-        - Do not doom scrolling, scroll only as much as needed to view the page. Never scroll back up when you've already scrolled down to see the page content. 
-        - If documentation is not complete on the page or website, never navigate to a new domain or web page.
-        - The framework being used is Playwright. Make the parameters object of the computer use tool based on the Playwright framework.
+        - Extract API information: endpoints, methods (GET, POST, PUT, DELETE), parameters, authentication
+        - If curl commands are available, view them. If there's an option to switch to curl, use it
+        - Scroll down per page to see all content. Never scroll back up
+        - Mark each page as visited in your mind
+        - NEVER click on a sidebar link you've already visited
+        - When you recognize you're on a page you've seen before, STOP immediately
+        - If documentation references external sites, DO NOT navigate there
+        - Use Playwright framework for all browser actions
     `,
 
     curl_docs_prompt: `
