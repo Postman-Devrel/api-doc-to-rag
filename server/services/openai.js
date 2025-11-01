@@ -47,17 +47,19 @@ const openAIRequest = async (
             tools,
             input,
             previous_response_id,
-            text: schema
-                ? {
-                      format: {
-                          name: schema.name,
-                          type: schema.type,
-                          schema: schema.schema,
-                      },
-                  }
-                : {},
             truncation: 'auto',
         };
+
+        // Only add text format if schema is provided
+        if (schema) {
+            requestParams.text = {
+                format: {
+                    name: schema.name,
+                    type: schema.type,
+                    schema: schema.schema,
+                },
+            };
+        }
 
         // Only add reasoning parameter for reasoning models
         if (isReasoningModel) {
@@ -77,4 +79,4 @@ const openAIRequest = async (
     }
 };
 
-export { openAIRequest };
+export { openAIRequest, getOpenAIClient };

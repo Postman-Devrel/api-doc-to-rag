@@ -1,11 +1,14 @@
 import { openAIRequest } from '../services/openai.js';
 import { startBrowser, handleBrowserAction } from '../browser/index.js';
 import prompts from '../constants/prompt.js';
-import curlDocsGenerator from './curl.js';
-import { createResourcesBatch } from '../actions/resources.js';
 import { BrowserError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { progressEmitter } from '../utils/progress-emitter.js';
+import { curlQueue, embeddingsQueue } from '../queue/config.js';
+import { resources } from '../db/schema/resources.js';
+import { websites } from '../db/schema/websites.js';
+import { db } from '../db/index.js';
+import { eq } from 'drizzle-orm';
 
 /**
  * Helper function to take optimized screenshots
@@ -113,8 +116,9 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
     let curlDocsList = [];
     let curlDocsResponseId = null;
 
-    // Queue to store curl docs generation promises for background processing
-    const curlDocsQueue = [];
+    // Track queued jobs for curl generation
+    const curlJobIds = [];
+    let jobIndex = 0;
 
     let actionCount = 0;
 
@@ -140,55 +144,123 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
             }
 
             if (computerCalls.length === 0) {
-                logger.info('No more computer calls. Processing queued curl docs generation...');
+                logger.info(
+                    'No more computer calls. Waiting for curl generation jobs to complete...'
+                );
 
-                // Wait for all queued curl docs to complete
-                if (curlDocsQueue.length > 0) {
+                // Wait for all curl generation jobs to complete
+                if (curlJobIds.length > 0) {
                     logger.info(
-                        `Waiting for ${curlDocsQueue.length} queued curl docs to complete...`
+                        `Waiting for ${curlJobIds.length} curl generation jobs to complete...`
                     );
-                    const queuedResults = await Promise.all(curlDocsQueue);
 
-                    // Collect all documents for batch embedding creation
+                    // Wait for all jobs to complete and get results
+                    const jobResults = await Promise.all(
+                        curlJobIds.map(async jobId => {
+                            const job = await curlQueue.getJob(jobId);
+                            await job.waitUntilFinished(curlQueue.events);
+                            return job.returnvalue;
+                        })
+                    );
+
+                    // Collect all documents and create resources
                     const allDocsToEmbed = [];
-                    for (const { curlObj } of queuedResults) {
-                        curlDocsList.push(curlObj);
+                    for (const result of jobResults) {
+                        if (result.success && result.curlObj) {
+                            curlDocsList.push(result.curlObj);
 
-                        const { curlDocs } = curlObj;
-                        for (const doc of curlDocs) {
-                            const contentParts = [
-                                `Tags: ${doc.tags}`,
-                                `Description: ${doc.description}`,
-                                `Curl Command: ${doc.curl}`,
-                                `Parameters: ${doc.parameters
-                                    .map(
-                                        p =>
-                                            `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
-                                    )
-                                    .join('; ')}`,
-                            ];
-                            const content = contentParts.filter(Boolean).join('\n\n');
+                            const { curlDocs } = result.curlObj;
+                            for (const doc of curlDocs) {
+                                const contentParts = [
+                                    `Tags: ${doc.tags}`,
+                                    `Description: ${doc.description}`,
+                                    `Curl Command: ${doc.curl}`,
+                                    `Parameters: ${doc.parameters
+                                        .map(
+                                            p =>
+                                                `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
+                                        )
+                                        .join('; ')}`,
+                                ];
+                                const content = contentParts.filter(Boolean).join('\n\n');
 
-                            // Store structured data along with content for OpenAPI generation
-                            allDocsToEmbed.push({
-                                content,
-                                url,
-                                tags: doc.tags,
-                                description: doc.description,
-                                curlCommand: doc.curl,
-                                parameters: doc.parameters, // Store as array of objects
-                            });
+                                // Store structured data
+                                allDocsToEmbed.push({
+                                    content,
+                                    url,
+                                    tags: doc.tags,
+                                    description: doc.description,
+                                    curlCommand: doc.curl,
+                                    parameters: doc.parameters,
+                                });
+                            }
                         }
                     }
 
-                    // Create all embeddings in parallel
+                    // Create resources and queue embeddings generation
                     if (allDocsToEmbed.length > 0) {
                         logger.info(
-                            `Creating embeddings for ${allDocsToEmbed.length} documents in batch...`
+                            `Creating ${allDocsToEmbed.length} resources and queuing embeddings...`
                         );
 
-                        await createResourcesBatch(allDocsToEmbed);
-                        logger.info('All resources created and embedded successfully');
+                        // Get or create website
+                        const websiteName = new URL(url).hostname;
+                        let websiteResult = await db
+                            .select()
+                            .from(websites)
+                            .where(eq(websites.url, url))
+                            .limit(1);
+
+                        let website;
+                        if (websiteResult.length === 0) {
+                            [website] = await db
+                                .insert(websites)
+                                .values({ url, name: websiteName })
+                                .returning();
+                        } else {
+                            website = websiteResult[0];
+                        }
+
+                        // Insert resources without embeddings
+                        const insertedResources = await db
+                            .insert(resources)
+                            .values(
+                                allDocsToEmbed.map(
+                                    ({ content, tags, description, curlCommand, parameters }) => ({
+                                        content,
+                                        websiteId: website.id,
+                                        tags,
+                                        description,
+                                        curlCommand,
+                                        parameters,
+                                    })
+                                )
+                            )
+                            .returning();
+
+                        logger.info(`Inserted ${insertedResources.length} resources`);
+
+                        // Queue embeddings generation for each resource
+                        const embeddingsJobs = insertedResources.map((resource, idx) =>
+                            embeddingsQueue.add(
+                                'generate-embeddings',
+                                {
+                                    resourceId: resource.id,
+                                    content: allDocsToEmbed[idx].content,
+                                    sessionId,
+                                    jobIndex: idx + 1,
+                                    totalJobs: insertedResources.length,
+                                },
+                                {
+                                    jobId: `embeddings-${resource.id}`,
+                                }
+                            )
+                        );
+
+                        await Promise.all(embeddingsJobs);
+                        logger.info(
+                            `Queued ${embeddingsJobs.length} embeddings generation jobs in background`
+                        );
                     }
                 }
 
@@ -281,21 +353,37 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
                 { summary: 'concise' },
                 response.id
             );
-            // const { output, output_text } = response;
 
-            // Queue curl docs generation in background (don't wait for it)
-            logger.debug('Queuing curl docs generation for background processing');
+            // Queue curl docs generation in BullMQ (background processing)
+            jobIndex++;
+            logger.debug('Queuing curl docs generation job to BullMQ', { jobIndex });
 
-            const curlDocsPromise = curlDocsGenerator(screenshotUrl, curlDocsResponseId).then(
-                result => {
-                    curlDocsResponseId = result.responseId;
-                    logger.debug('Curl docs generated in background');
-
-                    return result;
+            const job = await curlQueue.add(
+                'generate-curl-docs',
+                {
+                    screenshot: screenshotUrl,
+                    previousResponseId: curlDocsResponseId,
+                    sessionId,
+                    jobIndex,
+                    totalJobs: jobIndex, // Will update as we go
+                },
+                {
+                    jobId: `curl-${sessionId}-${jobIndex}`,
                 }
             );
 
-            curlDocsQueue.push(curlDocsPromise);
+            curlJobIds.push(job.id);
+
+            // Emit queued event to SSE
+            if (sessionId) {
+                progressEmitter.sendEvent(sessionId, 'curl_progress', {
+                    status: 'queued',
+                    current: jobIndex,
+                    jobId: job.id,
+                });
+            }
+
+            logger.debug('Curl generation job queued', { jobId: job.id, jobIndex });
         }
 
         return curlDocsList;

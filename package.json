@@ -10,6 +10,8 @@
     "scripts": {
         "start": "yarn workspace server start",
         "dev": "yarn workspace server dev",
+        "workers": "yarn workspace server workers",
+        "workers:dev": "yarn workspace server workers:dev",
         "client:dev": "yarn workspace doc-collection-frontend dev",
         "client:build": "yarn workspace doc-collection-frontend build",
         "db:setup": "yarn workspace server db:setup",

@@ -1,6 +1,10 @@
-import 'dotenv/config';
+const { config } = require('dotenv');
+const path = require('path');
 
-export default {
+// Load .env from root directory
+config({ path: path.join(__dirname, '..', '.env') });
+
+module.exports = {
     schema: './db/schema',
     dialect: 'postgresql',
     out: './db/migrations',

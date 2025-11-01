@@ -1,5 +1,5 @@
 <template>
-    <div class="card">
+    <div class="card relative">
         <!-- Error Banner (if error occurs) -->
         <div
             v-if="hasError"
@@ -231,11 +231,39 @@
                 </div>
             </div>
         </div>
+
+        <!-- Floating Chat Button -->
+        <button
+            @click="isChatOpen = true"
+            class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 flex items-center justify-center z-40 group"
+            :class="{ 'animate-bounce': !isChatOpen && (isGenerating || completed) }"
+        >
+            <span class="text-2xl">💬</span>
+            <span
+                class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse"
+                v-if="isGenerating || completed"
+            ></span>
+            <!-- Tooltip -->
+            <span
+                class="absolute bottom-full right-0 mb-2 px-3 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            >
+                Chat with your docs
+            </span>
+        </button>
+
+        <!-- Chat Window -->
+        <ChatWindow
+            :is-open="isChatOpen"
+            :url="url"
+            :is-generating="isGenerating"
+            @close="isChatOpen = false"
+        />
     </div>
 </template>
 
 <script setup>
 import { computed, ref, onMounted, onUnmounted, watch } from 'vue';
+import ChatWindow from './ChatWindow.vue';
 
 const props = defineProps({
     events: {
@@ -281,6 +309,9 @@ const copied = ref(false);
 // Error handling
 const hasError = ref(false);
 const errorMessage = ref('');
+
+// Chat state
+const isChatOpen = ref(false);
 
 const dismissError = () => {
     hasError.value = false;

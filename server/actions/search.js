@@ -7,7 +7,7 @@ import { generateEmbedding } from '../services/embeddings.js';
 import { DatabaseError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 
-export const findRelevantContent = async (userQuery, url = null) => {
+export const findRelevantContent = async (userQuery, url = null, limit = 4) => {
     try {
         const userQueryEmbedded = await generateEmbedding(userQuery);
         const similarity = sql`1 - (${cosineDistance(embeddings.embedding, userQueryEmbedded)})`;
@@ -21,6 +21,10 @@ export const findRelevantContent = async (userQuery, url = null) => {
         const similarGuides = await db
             .select({
                 content: resources.content, // Return the full content of the resource
+                tags: resources.tags,
+                description: resources.description,
+                curlCommand: resources.curlCommand,
+                parameters: resources.parameters,
                 similarity,
                 url: websites.url,
                 websiteName: websites.name,
@@ -30,7 +34,7 @@ export const findRelevantContent = async (userQuery, url = null) => {
             .innerJoin(websites, eq(resources.websiteId, websites.id))
             .where(sql`${conditions.length > 1 ? sql.join(conditions, sql` AND `) : conditions[0]}`)
             .orderBy(t => desc(t.similarity))
-            .limit(4);
+            .limit(limit);
 
         logger.debug(`Found ${similarGuides.length} relevant results`, { query: userQuery, url });
 

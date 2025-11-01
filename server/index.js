@@ -7,6 +7,7 @@ import { nanoid } from 'nanoid';
 import { browserAgent } from './agents/browser.js';
 import { findRelevantContent } from './actions/search.js';
 import { generateCollection } from './actions/postman.js';
+import { chatWithDocumentation } from './services/chat.js';
 import { isValidUrl } from './utils/utils.js';
 import { errorHandler, notFoundHandler, asyncHandler } from './middleware/errorHandler.js';
 import { ValidationError } from './utils/errors.js';
@@ -264,6 +265,33 @@ app.get(
                 generatedBy: conversionReport.generatedBy,
             },
         });
+    })
+);
+
+// Chat with documentation using RAG
+app.post(
+    '/documentation/chat',
+    asyncHandler(async (req, res) => {
+        const { url, message, responseId } = req.body;
+
+        if (!url) {
+            throw new ValidationError('URL is required in the request body');
+        }
+
+        if (!message) {
+            throw new ValidationError('Message is required in the request body');
+        }
+
+        if (!isValidUrl(url)) {
+            throw new ValidationError('Invalid URL format. Please provide a valid URL');
+        }
+
+        logger.info('Chat request', { url, message, hasResponseId: !!responseId });
+
+        // Use chat service for RAG-powered response with conversation continuity via Responses API
+        const result = await chatWithDocumentation(message, url, 4, responseId);
+
+        res.json(result);
     })
 );
 

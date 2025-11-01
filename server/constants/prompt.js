@@ -294,6 +294,18 @@ const prompts = {
 
         Generate a complete, valid Postman Collection from the provided documentation.
     `,
+
+    chat_rag_prompt:
+        context => `You are a helpful API documentation assistant. Answer the user's question based ONLY on the provided documentation context. If the context doesn't contain relevant information, say so clearly.
+
+        Documentation Context:
+        ${context}
+
+        Important:
+        - Only use information from the context above
+        - Be concise and accurate
+        - If you're not sure or the context doesn't have the answer, say so
+        - Format your response in a clear, readable way`,
 };
 
 export default prompts;

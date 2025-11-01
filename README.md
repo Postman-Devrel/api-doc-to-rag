@@ -49,6 +49,7 @@ doc-collection-gen/
 - **Node.js**: v18 or higher
 - **Yarn**: v1.22+ (Classic)
 - **PostgreSQL**: v15+ with pgvector extension
+- **Redis**: For background job processing
 - **OpenAI API Key**: For AI-powered extraction and embeddings
 
 ## 🚀 Quick Start
@@ -70,12 +71,24 @@ This single command installs dependencies for all workspaces (root, client, serv
 
 ### 3. Set Up Environment Variables
 
-Create a `.env` file in the root directory. See `.env.example` for examples.
+Create a `.env` file in the root directory:
 
 ```env
+# OpenAI Configuration
 OPENAI_API_KEY=sk-...
-DATABASE_URL=postgresql://...
-PORT=3000
+ORGANIZATIONAL_ID=your_org_id_here
+
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+
+# Redis (for background jobs)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# Browser Configuration
+DISPLAY_WIDTH=1280
+DISPLAY_HEIGHT=800
+SCREENSHOT_QUALITY=60
 ```
 
 ### 4. Set Up Database
@@ -92,7 +105,57 @@ yarn db:setup
 yarn db:migrate
 ```
 
-### 5. Start the Server
+### 5. Set Up Redis (for Background Jobs)
+
+**macOS (Homebrew)**:
+
+```bash
+brew install redis
+brew services start redis
+```
+
+**Ubuntu/Debian**:
+
+```bash
+sudo apt install redis-server
+sudo systemctl start redis
+```
+
+**Docker** (easiest):
+
+```bash
+docker run -d -p 6379:6379 --name redis redis:alpine
+```
+
+**Verify Redis is running**:
+
+```bash
+redis-cli ping  # Should return: PONG
+```
+
+### 6. Start the Background Workers
+
+In a **separate terminal**, start the BullMQ workers:
+
+```bash
+# Production mode
+yarn workers
+
+# Or development mode (with auto-reload)
+yarn workers:dev
+```
+
+You should see:
+
+```
+Curl generation worker started
+Embeddings generation worker started
+All workers started and ready to process jobs
+```
+
+> **Important**: Keep this terminal running! The workers process curl generation and embeddings in the background, making the scraping much faster.
+
+### 7. Start the Server
 
 ```bash
 # Development mode (with hot reload)
@@ -104,7 +167,7 @@ yarn start
 
 The server will start on `http://localhost:3000` (or your configured PORT).
 
-### 6. Start the Frontend (Optional)
+### 8. Start the Frontend (Optional)
 
 ```bash
 # In a separate terminal
@@ -119,6 +182,10 @@ The client will start on `http://localhost:5173`.
 # Server
 yarn start              # Start production server
 yarn dev                # Start dev server with hot reload
+
+# Background Workers (Required for scraping!)
+yarn workers            # Start workers in production
+yarn workers:dev        # Start workers with auto-reload
 
 # Client
 yarn client:dev         # Start Vite dev server
@@ -214,6 +281,7 @@ yarn workspace server add express-rate-limit
 - Express.js
 - OpenAI API (Computer Use + Embeddings)
 - Playwright (browser automation)
+- BullMQ + Redis (background job processing)
 - Drizzle ORM + PostgreSQL + pgvector
 - Winston (logging)
 
@@ -222,6 +290,39 @@ yarn workspace server add express-rate-limit
 - Yarn Workspaces
 - Single lockfile
 - Shared dependencies
+
+## ⚡ Background Job Processing
+
+This application uses **BullMQ** with **Redis** for high-performance background processing:
+
+### How It Works
+
+```
+
+Browser Agent → Queue Curl Jobs → Curl Workers (parallel)
+↓
+Server ← Results ← Complete
+↓
+Create Resources in DB
+↓
+Queue Embeddings → Embeddings Workers (parallel) → Store in DB
+
+```
+
+### Performance Benefits
+
+- **~15x faster scraping**: No waiting for curl/embeddings during scraping
+- **Parallel processing**: 3 curl + 5 embeddings jobs at once
+- **Resilient**: Automatic retries with exponential backoff
+- **Real-time updates**: SSE events track job progress
+
+### Setup
+
+1. **Install Redis** (see step 5 in Quick Start)
+2. **Start workers** in a separate terminal: `yarn workers`
+3. **Start server**: `yarn dev`
+
+For detailed information, see [BACKGROUND_JOBS.md](./BACKGROUND_JOBS.md).
 
 ### Example Use Case
 
