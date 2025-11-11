@@ -1,0 +1,45 @@
+{
+    "name": "server",
+    "version": "1.0.0",
+    "main": "index.js",
+    "type": "module",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "node --watch index.js",
+        "workers": "node queue/start-workers.js",
+        "workers:dev": "node --watch queue/start-workers.js",
+        "db:setup": "node db/setup-vector.js",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "node db/migrate.js",
+        "db:drop": "drizzle-kit drop",
+        "db:pull": "drizzle-kit introspect",
+        "db:push": "drizzle-kit push",
+        "db:studio": "drizzle-kit studio",
+        "db:check": "drizzle-kit check"
+    },
+    "dependencies": {
+        "@ai-sdk/anthropic": "^2.0.37",
+        "@ai-sdk/openai": "^2.0.53",
+        "@modelcontextprotocol/sdk": "^1.20.1",
+        "add": "^2.0.6",
+        "ai": "^5.0.78",
+        "bullmq": "^5.63.0",
+        "cors": "^2.8.5",
+        "curl-to-postmanv2": "^1.8.3",
+        "dotenv": "^17.2.3",
+        "drizzle-orm": "^0.31.2",
+        "drizzle-zod": "^0.5.1",
+        "express": "^5.1.0",
+        "ioredis": "^5.8.2",
+        "nanoid": "^5.1.6",
+        "openai": "^6.2.0",
+        "playwright": "^1.56.0",
+        "postgres": "^3.4.4",
+        "zod": "^4.1.12"
+    },
+    "devDependencies": {
+        "drizzle-kit": "^0.22.7",
+        "pg": "^8.12.0",
+        "prettier": "^3.6.2"
+    }
+}
