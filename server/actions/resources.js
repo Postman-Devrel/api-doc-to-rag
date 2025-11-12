@@ -167,3 +167,64 @@ export const createResourcesBatch = async inputs => {
         throw new DatabaseError('Could not create resources in batch', error);
     }
 };
+
+/**
+ * Create resources without embeddings (for background job processing)
+ * Returns the inserted resources so embeddings can be queued separately
+ */
+export const createResourcesWithoutEmbeddings = async inputs => {
+    if (!inputs || inputs.length === 0) {
+        logger.warn('No resources to create');
+        return [];
+    }
+
+    try {
+        const url = inputs[0].url;
+
+        // Get or create website once for all resources
+        let website = websiteCache.get(url);
+        if (!website) {
+            let websiteResult = await db
+                .select()
+                .from(websites)
+                .where(eq(websites.url, url))
+                .limit(1);
+
+            if (websiteResult.length === 0) {
+                const websiteName = new URL(url).hostname;
+                [website] = await db
+                    .insert(websites)
+                    .values({ url, name: websiteName })
+                    .returning();
+                logger.info('Website created', { url, name: websiteName });
+            } else {
+                website = websiteResult[0];
+            }
+            websiteCache.set(url, website);
+        }
+
+        // Insert resources without embeddings
+        const insertedResources = await db
+            .insert(resources)
+            .values(
+                inputs.map(({ content, tags, description, curlCommand, parameters }) => ({
+                    content,
+                    websiteId: website.id,
+                    tags,
+                    description,
+                    curlCommand,
+                    parameters,
+                }))
+            )
+            .returning();
+
+        logger.info(`Created ${insertedResources.length} resources without embeddings`, { url });
+        return insertedResources;
+    } catch (error) {
+        logger.error('Failed to create resources', {
+            error: error.message,
+            count: inputs.length,
+        });
+        throw new DatabaseError('Could not create resources', error);
+    }
+};
