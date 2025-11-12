@@ -14,6 +14,7 @@ import { ValidationError } from './utils/errors.js';
 import { logger } from './utils/logger.js';
 import { checkDatabaseConnection } from './db/index.js';
 import { progressEmitter } from './utils/progress-emitter.js';
+import { serverAdapter as bullBoardAdapter } from './queue/board.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,6 +38,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Mount Bull Board UI
+app.use('/admin/queues', bullBoardAdapter.getRouter());
+logger.info('Bull Board mounted at /admin/queues');
 
 // Serve static frontend files in production
 if (process.env.NODE_ENV === 'production') {
@@ -118,6 +123,8 @@ app.get(
     '/knowledge-base/stream',
     asyncHandler(async (req, res) => {
         const { url } = req.query;
+
+        console.log('url', url);
 
         if (!url) {
             throw new ValidationError('URL is required as a query parameter');

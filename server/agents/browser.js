@@ -4,11 +4,8 @@ import prompts from '../constants/prompt.js';
 import { BrowserError } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { progressEmitter } from '../utils/progress-emitter.js';
-import { curlQueue, embeddingsQueue } from '../queue/config.js';
-import { resources } from '../db/schema/resources.js';
-import { websites } from '../db/schema/websites.js';
-import { db } from '../db/index.js';
-import { eq } from 'drizzle-orm';
+import { curlQueue, curlQueueEvents, embeddingsQueue } from '../queue/config.js';
+import { createResourcesWithoutEmbeddings } from '../actions/resources.js';
 
 /**
  * Helper function to take optimized screenshots
@@ -144,123 +141,37 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
             }
 
             if (computerCalls.length === 0) {
-                logger.info(
-                    'No more computer calls. Waiting for curl generation jobs to complete...'
-                );
+                logger.info('No more computer calls. Waiting for remaining curl jobs...');
 
-                // Wait for all curl generation jobs to complete
+                // Wait for any remaining curl jobs to complete
                 if (curlJobIds.length > 0) {
-                    logger.info(
-                        `Waiting for ${curlJobIds.length} curl generation jobs to complete...`
-                    );
+                    logger.info(`Waiting for ${curlJobIds.length} remaining curl jobs...`);
 
-                    // Wait for all jobs to complete and get results
                     const jobResults = await Promise.all(
                         curlJobIds.map(async jobId => {
-                            const job = await curlQueue.getJob(jobId);
-                            await job.waitUntilFinished(curlQueue.events);
-                            return job.returnvalue;
+                            try {
+                                const job = await curlQueue.getJob(jobId);
+                                if (!job) {
+                                    logger.warn(`Job ${jobId} not found in queue`);
+                                    return null;
+                                }
+
+                                const result = await job.waitUntilFinished(curlQueueEvents);
+                                return result;
+                            } catch (error) {
+                                logger.error(`Error waiting for job ${jobId}`, {
+                                    error: error.message,
+                                });
+                                return null;
+                            }
                         })
                     );
 
-                    // Collect all documents and create resources
-                    const allDocsToEmbed = [];
+                    // Collect results for final curlDocsList
                     for (const result of jobResults) {
-                        if (result.success && result.curlObj) {
+                        if (result && result.success && result.curlObj) {
                             curlDocsList.push(result.curlObj);
-
-                            const { curlDocs } = result.curlObj;
-                            for (const doc of curlDocs) {
-                                const contentParts = [
-                                    `Tags: ${doc.tags}`,
-                                    `Description: ${doc.description}`,
-                                    `Curl Command: ${doc.curl}`,
-                                    `Parameters: ${doc.parameters
-                                        .map(
-                                            p =>
-                                                `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
-                                        )
-                                        .join('; ')}`,
-                                ];
-                                const content = contentParts.filter(Boolean).join('\n\n');
-
-                                // Store structured data
-                                allDocsToEmbed.push({
-                                    content,
-                                    url,
-                                    tags: doc.tags,
-                                    description: doc.description,
-                                    curlCommand: doc.curl,
-                                    parameters: doc.parameters,
-                                });
-                            }
                         }
-                    }
-
-                    // Create resources and queue embeddings generation
-                    if (allDocsToEmbed.length > 0) {
-                        logger.info(
-                            `Creating ${allDocsToEmbed.length} resources and queuing embeddings...`
-                        );
-
-                        // Get or create website
-                        const websiteName = new URL(url).hostname;
-                        let websiteResult = await db
-                            .select()
-                            .from(websites)
-                            .where(eq(websites.url, url))
-                            .limit(1);
-
-                        let website;
-                        if (websiteResult.length === 0) {
-                            [website] = await db
-                                .insert(websites)
-                                .values({ url, name: websiteName })
-                                .returning();
-                        } else {
-                            website = websiteResult[0];
-                        }
-
-                        // Insert resources without embeddings
-                        const insertedResources = await db
-                            .insert(resources)
-                            .values(
-                                allDocsToEmbed.map(
-                                    ({ content, tags, description, curlCommand, parameters }) => ({
-                                        content,
-                                        websiteId: website.id,
-                                        tags,
-                                        description,
-                                        curlCommand,
-                                        parameters,
-                                    })
-                                )
-                            )
-                            .returning();
-
-                        logger.info(`Inserted ${insertedResources.length} resources`);
-
-                        // Queue embeddings generation for each resource
-                        const embeddingsJobs = insertedResources.map((resource, idx) =>
-                            embeddingsQueue.add(
-                                'generate-embeddings',
-                                {
-                                    resourceId: resource.id,
-                                    content: allDocsToEmbed[idx].content,
-                                    sessionId,
-                                    jobIndex: idx + 1,
-                                    totalJobs: insertedResources.length,
-                                },
-                                {
-                                    jobId: `embeddings-${resource.id}`,
-                                }
-                            )
-                        );
-
-                        await Promise.all(embeddingsJobs);
-                        logger.info(
-                            `Queued ${embeddingsJobs.length} embeddings generation jobs in background`
-                        );
                     }
                 }
 
@@ -338,8 +249,9 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
                 );
 
                 // Acknowledge all safety checks
+                // The API expects each check to have: id, code, message
                 input[0].acknowledged_safety_checks = safetyChecks.map(sc => ({
-                    id: sc.call_id,
+                    id: sc.id, // Use sc.id, not sc.call_id
                     code: sc.code,
                     message: sc.message,
                 }));
@@ -363,27 +275,88 @@ async function computerUseLoop(pageInstance, response, url, sessionId = null) {
                 {
                     screenshot: screenshotUrl,
                     previousResponseId: curlDocsResponseId,
-                    sessionId,
                     jobIndex,
                     totalJobs: jobIndex, // Will update as we go
                 },
                 {
-                    jobId: `curl-${sessionId}-${jobIndex}`,
+                    jobId: `curl-${sessionId || 'no-session'}-${jobIndex}`,
                 }
             );
 
             curlJobIds.push(job.id);
 
-            // Emit queued event to SSE
-            if (sessionId) {
-                progressEmitter.sendEvent(sessionId, 'curl_progress', {
-                    status: 'queued',
-                    current: jobIndex,
-                    jobId: job.id,
-                });
-            }
-
             logger.debug('Curl generation job queued', { jobId: job.id, jobIndex });
+
+            // Process this curl job in the background - create resources & queue embeddings as soon as it completes
+            job.waitUntilFinished(curlQueueEvents)
+                .then(async result => {
+                    if (result.success && result.curlObj) {
+                        const { curlDocs } = result.curlObj;
+
+                        if (curlDocs && curlDocs.length > 0) {
+                            logger.info(
+                                `Curl job ${job.id} completed, creating ${curlDocs.length} resources...`
+                            );
+
+                            // Build resource data
+                            const docsToEmbed = curlDocs.map(doc => {
+                                const contentParts = [
+                                    `Tags: ${doc.tags}`,
+                                    `Description: ${doc.description}`,
+                                    `Curl Command: ${doc.curl}`,
+                                    `Parameters: ${doc.parameters
+                                        .map(
+                                            p =>
+                                                `${p.name} (${p.type}${p.required ? ', required' : ', optional'}): ${p.description}`
+                                        )
+                                        .join('; ')}`,
+                                ];
+                                return {
+                                    content: contentParts.filter(Boolean).join('\n\n'),
+                                    url,
+                                    tags: doc.tags,
+                                    description: doc.description,
+                                    curlCommand: doc.curl,
+                                    parameters: doc.parameters,
+                                };
+                            });
+
+                            // Create resources immediately
+                            const insertedResources =
+                                await createResourcesWithoutEmbeddings(docsToEmbed);
+
+                            logger.info(
+                                `Created ${insertedResources.length} resources, queuing embeddings...`
+                            );
+
+                            // Queue embeddings for these resources immediately
+                            const embeddingsJobs = insertedResources.map((resource, idx) =>
+                                embeddingsQueue.add(
+                                    'generate-embeddings',
+                                    {
+                                        resourceId: resource.id,
+                                        content: docsToEmbed[idx].content,
+                                        jobIndex: idx + 1,
+                                        totalJobs: insertedResources.length,
+                                    },
+                                    {
+                                        jobId: `embeddings-${resource.id}`,
+                                    }
+                                )
+                            );
+
+                            await Promise.all(embeddingsJobs);
+                            logger.info(
+                                `Queued ${embeddingsJobs.length} embeddings for curl job ${job.id}`
+                            );
+                        }
+                    }
+                })
+                .catch(err => {
+                    logger.error(`Failed to process completed curl job ${job.id}`, {
+                        error: err.message,
+                    });
+                });
         }
 
         return curlDocsList;

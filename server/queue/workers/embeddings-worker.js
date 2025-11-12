@@ -4,7 +4,6 @@ import { generateEmbeddings } from '../../services/embeddings.js';
 import { embeddings as embeddingsTable } from '../../db/schema/embeddings.js';
 import { db } from '../../db/index.js';
 import { logger } from '../../utils/logger.js';
-import { progressEmitter } from '../../utils/progress-emitter.js';
 
 const connection = new IORedis({
     host: process.env.REDIS_HOST || 'localhost',
@@ -14,30 +13,20 @@ const connection = new IORedis({
 
 /**
  * Worker for generating and storing embeddings for resources
- * Jobs are queued after curl docs are generated and resources are created
+ * Jobs are queued after resources are created in the database
+ * Note: Does not send SSE events as the session may be closed
  */
 const embeddingsWorker = new Worker(
     'embeddings-generation',
     async job => {
-        const { resourceId, content, sessionId, jobIndex, totalJobs } = job.data;
+        const { resourceId, content, jobIndex, totalJobs } = job.data;
 
         try {
             logger.info(`Processing embeddings generation job ${job.id}`, {
                 resourceId,
                 jobIndex,
                 totalJobs,
-                sessionId,
             });
-
-            // Emit progress event
-            if (sessionId) {
-                progressEmitter.sendEvent(sessionId, 'embedding_progress', {
-                    status: 'start',
-                    current: jobIndex,
-                    total: totalJobs,
-                    resourceId,
-                });
-            }
 
             // Generate embeddings for the content
             const embeddings = await generateEmbeddings(content);
@@ -58,17 +47,6 @@ const embeddingsWorker = new Worker(
                 jobIndex,
             });
 
-            // Emit completion event
-            if (sessionId) {
-                progressEmitter.sendEvent(sessionId, 'embedding_progress', {
-                    status: 'complete',
-                    current: jobIndex,
-                    total: totalJobs,
-                    resourceId,
-                    embeddingsCount: embeddings.length,
-                });
-            }
-
             return {
                 success: true,
                 resourceId,
@@ -79,19 +57,7 @@ const embeddingsWorker = new Worker(
                 error: error.message,
                 resourceId,
                 jobIndex,
-                sessionId,
             });
-
-            // Emit error event
-            if (sessionId) {
-                progressEmitter.sendEvent(sessionId, 'embedding_progress', {
-                    status: 'error',
-                    current: jobIndex,
-                    total: totalJobs,
-                    resourceId,
-                    error: error.message,
-                });
-            }
 
             throw error; // Re-throw so BullMQ can retry
         }

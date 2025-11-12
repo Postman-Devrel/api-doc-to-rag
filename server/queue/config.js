@@ -1,13 +1,18 @@
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 import IORedis from 'ioredis';
 import { logger } from '../utils/logger.js';
 
 // Redis connection
-const connection = new IORedis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null,
-});
+// Support both REDIS_URL (Heroku) and REDIS_HOST/REDIS_PORT (local)
+const connection = process.env.REDIS_URL
+    ? new IORedis(process.env.REDIS_URL, {
+          maxRetriesPerRequest: null,
+      })
+    : new IORedis({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          maxRetriesPerRequest: null,
+      });
 
 connection.on('error', error => {
     logger.error('Redis connection error', { error: error.message });
@@ -36,6 +41,12 @@ export const curlQueue = new Queue('curl-generation', {
     },
 });
 
+// QueueEvents for listening to job completion
+export const curlQueueEvents = new QueueEvents('curl-generation', { connection });
+
+// Increase max listeners to prevent memory leak warnings when waiting for many jobs
+curlQueueEvents.setMaxListeners(100);
+
 // Queue for embeddings generation
 export const embeddingsQueue = new Queue('embeddings-generation', {
     connection,
@@ -55,18 +66,25 @@ export const embeddingsQueue = new Queue('embeddings-generation', {
     },
 });
 
+// QueueEvents for listening to embeddings job completion
+export const embeddingsQueueEvents = new QueueEvents('embeddings-generation', { connection });
+
 // Graceful shutdown
 process.on('SIGTERM', async () => {
     logger.info('SIGTERM received, closing queues...');
     await curlQueue.close();
+    await curlQueueEvents.close();
     await embeddingsQueue.close();
+    await embeddingsQueueEvents.close();
     await connection.quit();
 });
 
 process.on('SIGINT', async () => {
     logger.info('SIGINT received, closing queues...');
     await curlQueue.close();
+    await curlQueueEvents.close();
     await embeddingsQueue.close();
+    await embeddingsQueueEvents.close();
     await connection.quit();
     process.exit(0);
 });
